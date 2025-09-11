@@ -109,7 +109,7 @@ function LoginPage() {
         className="relative w-full max-w-sm p-8 rounded-2xl border border-white/20 shadow-xl backdrop-blur-md bg-white/30"
       >
         <h2 className="text-2xl font-bold text-center text-gray-900 mb-6 drop-shadow-md">
-          Welcome To GNDEC SPORTS 👋
+          Welcome To GNDEC SPORTS PORTAL 👋
         </h2>
 
         {err && (
