@@ -161,8 +161,8 @@ const fetchCaptainHistory = async (urn,sessionId) => {
         name: form.name.value,
         branch: form.branch.value,
         urn: form.urn.value,
-        // Auto-fill member year to captain's year
-        year: Number(captainInfo?.year) || Number(form.year.value),
+        // Use the selected year from the form
+        year: Number(form.year.value),
         email: form.email.value,
         phone: form.phone.value,
         sport: captainInfo.sport,
@@ -536,7 +536,7 @@ return (
                             <option key={y} value={y}>{`D${y}`}</option>
                           ))}
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">Auto-filled to captain's year</p>
+                        <p className="text-xs text-gray-500 mt-1">Auto-filled to captain's year (D{captainInfo?.year}) - you can change if different</p>
                       </div>
                       
                       <div>

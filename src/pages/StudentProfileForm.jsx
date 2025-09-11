@@ -354,7 +354,8 @@ const StudentProfileForm = () => {
   // Handle clone message after profile is loaded
   useEffect(() => {
     const personalStatus = profile?.status?.personal?.toLowerCase?.();
-    const shouldShow = profile?.isCloned && personalStatus === "none";
+    const shouldShow = profile?.student?.isCloned && personalStatus === "none";
+    console.log("DEBUG clone check:", { personalStatus, isCloned: profile?.isCloned, hasShownCloneMessage });
     if (shouldShow && !hasShownCloneMessage) {
       alert("This profile has been cloned from your last approved session. Please review and update if needed.");
       setHasShownCloneMessage(true);
