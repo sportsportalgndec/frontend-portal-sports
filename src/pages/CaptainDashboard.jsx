@@ -1,6 +1,7 @@
 // src/pages/CaptainDashboard.jsx
 import React, { useEffect, useState,useRef } from 'react';
 import API from '../services/api';
+import { branches as sharedBranches, years as sharedYears } from '../lib/options';
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { color } from 'framer-motion';
@@ -19,6 +20,7 @@ function CaptainDashboard() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [history, setHistory] = useState(null);
+  const [addingMember, setAddingMember] = useState(false);
       const certRefs = useRef([]);
 
   const fetchSessions = async () => {
@@ -153,12 +155,14 @@ const fetchCaptainHistory = async (urn,sessionId) => {
     if (!activeSession?.isActive) return;
     setErr('');
     try {
+      setAddingMember(true);
       const form = e.target;
       const member = {
         name: form.name.value,
         branch: form.branch.value,
         urn: form.urn.value,
-        year: Number(form.year.value),
+        // Auto-fill member year to captain's year
+        year: Number(captainInfo?.year) || Number(form.year.value),
         email: form.email.value,
         phone: form.phone.value,
         sport: captainInfo.sport,
@@ -178,6 +182,8 @@ const fetchCaptainHistory = async (urn,sessionId) => {
       }
     } catch (err) {
       setErr(err.response?.data?.message || 'Failed to add team member.');
+    } finally {
+      setAddingMember(false);
     }
   };
 const generateCertificatesPDF = async () => {
@@ -509,7 +515,12 @@ return (
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Branch</label>
-                        <input name="branch" placeholder="Enter branch" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-400 bg-white text-gray-700" required />
+                        <select name="branch" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-400 bg-white text-gray-700" required>
+                          <option value="">Select Branch</option>
+                          {sharedBranches.map(b => (
+                            <option key={b} value={b}>{b}</option>
+                          ))}
+                        </select>
                       </div>
                       
                       <div>
@@ -519,7 +530,13 @@ return (
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
-                        <input name="year" placeholder="Enter year" type="number" min="1" className="!bg-white w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-400 bg-white !text-black" required />
+                        <select name="year" defaultValue={captainInfo?.year} className="!bg-white w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-400 bg-white !text-black" required>
+                          <option value="">Select Year</option>
+                          {sharedYears.map(y => (
+                            <option key={y} value={y}>{`D${y}`}</option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">Auto-filled to captain's year</p>
                       </div>
                       
                       <div>
@@ -536,12 +553,26 @@ return (
                     <div className="pt-2">
                       <button 
                         type="submit"
-                        className="inline-flex items-center px-5 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-orange-600 to-indigo-600 hover:from-orange-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-300"
+                        disabled={addingMember}
+                        className="inline-flex items-center px-5 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-orange-600 to-indigo-600 hover:from-orange-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                        aria-busy={addingMember}
                       >
-                        <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                        </svg>
-                        Add Member
+                        {addingMember ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Adding...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                            </svg>
+                            Add Member
+                          </>
+                        )}
                       </button>
                     </div>
                   </form>
@@ -733,7 +764,7 @@ return (
                     <svg className="h-5 w-5 mr-2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
-                    Certificates will be available after approval
+                    Certificates will be available after you got position
                   </p>
                 </div>
               )}

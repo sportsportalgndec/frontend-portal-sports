@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { branches as sharedBranches, years as sharedYears, sportsList as sharedSports } from "../lib/options";
 import API from "../services/api";
 
 const StudentProfileForm = () => {
@@ -35,7 +36,8 @@ const StudentProfileForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submittingForApproval, setSubmittingForApproval] = useState(false);
   const [sportsSubmitting, setSportsSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
   const [err, setErr] = useState("");
   const [hasShownCloneMessage, setHasShownCloneMessage] = useState(false);
 
@@ -158,7 +160,8 @@ const StudentProfileForm = () => {
   const handleUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUploading(true);
+    if (type === "photo") setUploadingPhoto(true);
+    if (type === "signaturePhoto") setUploadingSignature(true);
     setErr("");
     try {
       const data = new FormData();
@@ -169,14 +172,16 @@ const StudentProfileForm = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (res.data && res.data[type]) {
-        setFormData((prev) => ({ ...prev, [type]: res.data[type] }));
+      const url = type === "photo" ? res.data?.photoUrl : res.data?.signatureUrl;
+      if (url) {
+        setFormData((prev) => ({ ...prev, [type]: url }));
         alert(`✅ ${type} uploaded successfully`);
       }
     } catch {
       setErr("❌ Upload error");
     } finally {
-      setUploading(false);
+      if (type === "photo") setUploadingPhoto(false);
+      if (type === "signaturePhoto") setUploadingSignature(false);
     }
   };
 
@@ -348,7 +353,9 @@ const StudentProfileForm = () => {
 
   // Handle clone message after profile is loaded
   useEffect(() => {
-    if (profile?.isCloned && !hasShownCloneMessage) {
+    const personalStatus = profile?.status?.personal?.toLowerCase?.();
+    const shouldShow = profile?.isCloned && personalStatus === "none";
+    if (shouldShow && !hasShownCloneMessage) {
       alert("This profile has been cloned from your last approved session. Please review and update if needed.");
       setHasShownCloneMessage(true);
     }
@@ -775,12 +782,12 @@ const StudentProfileForm = () => {
                                     type="file"
                                     accept="image/*"
                                     onChange={(e) => handleUpload(e, "photo")}
-                                    disabled={!selectedSessionIsActive || personalPending || uploading || profile?.isCloned}
+                                    disabled={!selectedSessionIsActive || personalPending || uploadingPhoto || profile?.isCloned}
                                     className="sr-only"
                                     id="photo-upload"
                                   />
                                   <label htmlFor="photo-upload" className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <span>Upload a photo</span>
+                                    <span>{uploadingPhoto ? "Uploading..." : (formData.photo ? "Re-upload photo" : "Upload a photo")}</span>
                                   </label>
                                 </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG up to 10MB</p>
@@ -793,6 +800,7 @@ const StudentProfileForm = () => {
                                   alt="Preview"
                                   className="w-32 h-32 object-cover rounded-lg mx-auto border border-gray-200 dark:border-gray-700"
                                 />
+                                <p className="text-xs text-center text-green-600 dark:text-green-400 mt-2">Photo uploaded</p>
                               </div>
                             )}
                           </div>
@@ -812,12 +820,12 @@ const StudentProfileForm = () => {
                                     type="file"
                                     accept="image/*"
                                     onChange={(e) => handleUpload(e, "signaturePhoto")}
-                                    disabled={!selectedSessionIsActive || personalPending || uploading || profile?.isCloned}
+                                    disabled={!selectedSessionIsActive || personalPending || uploadingSignature || profile?.isCloned}
                                     className="sr-only"
                                     id="signature-upload"
                                   />
                                   <label htmlFor="signature-upload" className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <span>Upload signature</span>
+                                    <span>{uploadingSignature ? "Uploading..." : (formData.signaturePhoto ? "Re-upload signature" : "Upload signature")}</span>
                                   </label>
                                 </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG up to 10MB</p>
@@ -830,6 +838,7 @@ const StudentProfileForm = () => {
                                   alt="Signature"
                                   className="w-32 h-16 object-contain mx-auto border border-gray-200 dark:border-gray-700 rounded-lg"
                                 />
+                                <p className="text-xs text-center text-green-600 dark:text-green-400 mt-2">Signature uploaded</p>
                               </div>
                             )}
                           </div>
@@ -1112,14 +1121,18 @@ const StudentProfileForm = () => {
                             PTU Intercollege Sports
                           </h4>
                           <div className="flex space-x-2">
-                            <input
-                              type="text"
+                            <select
+                              aria-label="Select PTU Intercollege sport"
                               value={ptuIntercollegeSport}
                               onChange={(e) => setPtuIntercollegeSport(e.target.value)}
-                              placeholder="Enter sport name"
-                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                               disabled={!selectedSessionIsActive || sportsPending}
-                            />
+                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <option value="">Select sport</option>
+                              {sharedSports.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               onClick={handleAddPtuIntercollegeSport}
@@ -1140,14 +1153,18 @@ const StudentProfileForm = () => {
                             National Level Sports
                           </h4>
                           <div className="flex space-x-2">
-                            <input
-                              type="text"
+                            <select
+                              aria-label="Select National Level sport"
                               value={nationalLevelSport}
                               onChange={(e) => setNationalLevelSport(e.target.value)}
-                              placeholder="Enter sport name"
-                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                               disabled={!selectedSessionIsActive || sportsPending}
-                            />
+                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <option value="">Select sport</option>
+                              {sharedSports.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               onClick={handleAddNationalLevelSport}
@@ -1169,14 +1186,18 @@ const StudentProfileForm = () => {
                             State Level Sports
                           </h4>
                           <div className="flex space-x-2">
-                            <input
-                              type="text"
+                            <select
+                              aria-label="Select State Level sport"
                               value={stateLevelSport}
                               onChange={(e) => setStateLevelSport(e.target.value)}
-                              placeholder="Enter sport name"
-                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                               disabled={!selectedSessionIsActive || sportsPending}
-                            />
+                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <option value="">Select sport</option>
+                              {sharedSports.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               onClick={handleAddStateLevelSport}
@@ -1197,14 +1218,18 @@ const StudentProfileForm = () => {
                             Inter-University Level Sports
                           </h4>
                           <div className="flex space-x-2">
-                            <input
-                              type="text"
+                            <select
+                              aria-label="Select Inter-University Level sport"
                               value={interUniversityLevelSport}
                               onChange={(e) => setInterUniversityLevelSport(e.target.value)}
-                              placeholder="Enter sport name"
-                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                               disabled={!selectedSessionIsActive || sportsPending}
-                            />
+                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <option value="">Select sport</option>
+                              {sharedSports.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               onClick={handleAddInterUniversityLevelSport}
@@ -1223,14 +1248,18 @@ const StudentProfileForm = () => {
                             International Level Sports
                           </h4>
                           <div className="flex space-x-2">
-                            <input
-                              type="text"
+                            <select
+                              aria-label="Select International Level sport"
                               value={internationalLevelSport}
                               onChange={(e) => setInternationalLevelSport(e.target.value)}
-                              placeholder="Enter sport name"
-                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                               disabled={!selectedSessionIsActive || sportsPending}
-                            />
+                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <option value="">Select sport</option>
+                              {sharedSports.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               onClick={handleAddInternationalLevelSport}

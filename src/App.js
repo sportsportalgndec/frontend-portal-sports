@@ -28,6 +28,7 @@ import CaptainListCert from './pages/CaptainListCert';
 import StudentsTable from './pages/Scorematrix';
 import AdminLayout from './components/AdminLayout';
 import EligibilityPDF from './pages/EligibiliyPDF';
+import DevelopmentTeam from './pages/DevelopmentTeam';
 
 function App() {
   return (
@@ -39,7 +40,7 @@ function App() {
           <Route path="/student" element={<StudentProfileForm />} />
           <Route path="/teacher" element={<TeacherDashboard />} />
           <Route path="/captain" element={<CaptainDashboard />} />
-
+          <Route path="/development-team" element={<DevelopmentTeam />} />
           {/* Admin routes with persistent sidebar */}
           <Route element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
             <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />

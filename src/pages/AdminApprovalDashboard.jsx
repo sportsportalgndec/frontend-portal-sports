@@ -318,11 +318,14 @@ const AdminApprovalDashboard = () => {
                           <span className="font-medium text-foreground">Academic Info:</span>
                           <p className="text-muted-foreground">Matric: {student.yearOfPassingMatric || "N/A"}</p>
                           <p className="text-muted-foreground">+2: {student.yearOfPassingPlusTwo || "N/A"}</p>
+                          <p className="text-muted-foreground">Inter-College Graduate Course: {student.interCollegeGraduateCourse || "N/A"}</p>
+                          <p className="text-muted-foreground">Inter-College PG Course: {student.interCollegePgCourse || "N/A"}</p>
                         </div>
                         <div>
                           <span className="font-medium text-foreground">Participation:</span>
                           <p className="text-muted-foreground">Years: {student.yearsOfParticipation || 0}</p>
                           <p className="text-muted-foreground">Admission: {student.firstAdmissionDate || "N/A"}</p>
+
                         </div>
                         <div>
                           <span className="font-medium text-foreground">Sports:</span>
@@ -381,10 +384,10 @@ const AdminApprovalDashboard = () => {
                             </div>
                             <div>
                               <h3 className="text-lg font-semibold text-foreground">
-                                {captain?.teamName || "Unnamed Team"}
+                                {team?.captainId || "Unnamed Team"}
                               </h3>
                               <p className="text-sm text-muted-foreground">
-                                Sport: {captain?.sport || "N/A"} • Captain: {captain?.name || "Unknown"}
+                                Sport: {team?.members[0]?.sport || "N/A"} • Captain: {team.captain?.name || "Unknown"}
                               </p>
                             </div>
                           </div>

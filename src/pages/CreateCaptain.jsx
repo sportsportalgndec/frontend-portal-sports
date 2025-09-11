@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select } from '../components/ui/select';
 import { Modal, ModalHeader, ModalTitle, ModalContent, ModalFooter } from '../components/ui/modal';
+import { branches as sharedBranches, years as sharedYears, sportsList as sharedSports } from '../lib/options';
 import { 
   Crown, 
   Plus, 
@@ -29,42 +30,11 @@ export default function CreateCaptain() {
   const [showPassword, setShowPassword] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
-  // Form arrays
-  const branches = [
-    "Civil Engineering",
-    "Computer Science and Engineering",
-    "Electrical Engineering",
-    "Electronics and Communication Engineering",
-    "Information Technology",
-    "Mechanical Engineering",
-    "Robotics and Artificial Intelligence",
-    "M.Tech Electronics and Communication Engineering",
-    "M.Tech Environmental Science and Engineering",
-    "M.Tech Computer Science and Information Technology",
-    "M.Tech Power Engineering",
-    "M.Tech Production Engineering",
-    "M.Tech Structural Engineering",
-    "M.Tech Computer Science and Engineering",
-    "MBA",
-    "MCA",
-    "BCA",
-    "BBA",
-    "B.Voc Interior Design",
-    "B.Com Entrepreneurship"
-  ];
-
-  const years = [1, 2, 3, 4, 5];
+  // Form arrays (reused from shared options)
+  const branches = sharedBranches;
+  const years = sharedYears;
   const teamSizes = [1,2,3,4,5, 6, 7, 8, 9, 10];
-  const sportsList = [
-    "Football",
-    "Basketball",
-    "Volleyball",
-    "Cricket",
-    "Badminton",
-    "Table Tennis",
-    "Hockey",
-    "Athletics"
-  ];
+  const sportsList = sharedSports;
 
   const [form, setForm] = useState({
     name: '',
