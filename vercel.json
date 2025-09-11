@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:match*",
-      "destination": "https://sports-web-backend.vercel.app/api/:match*"
+      "destination": "https://backend-portal-sports.vercel.app/api/:match*"
     }
   ]
 }
