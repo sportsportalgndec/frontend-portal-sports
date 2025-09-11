@@ -36,7 +36,7 @@ const AdminApprovalDashboard = () => {
       const [teamsRes, studentsRes, captainsRes] = await Promise.all([
         API.get("/admin/pending-teams", { withCredentials: true }),
         API.get("/admin/pending-profiles", { withCredentials: true }),
-        API.get("/api/admin/captains", { withCredentials: true }),
+        API.get("/admin/captains", { withCredentials: true }),
       ]);
 
       setPendingTeams(teamsRes.data || []);
