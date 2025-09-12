@@ -384,7 +384,7 @@ const AdminApprovalDashboard = () => {
                             </div>
                             <div>
                               <h3 className="text-lg font-semibold text-foreground">
-                                {team?.captainId || "Unnamed Team"}
+                               {team?.captain?.year ? `Year:D${team.captain.year}` : "no year"}
                               </h3>
                               <p className="text-sm text-muted-foreground">
                                 Sport: {team?.members[0]?.sport || "N/A"} • Captain: {team.captain?.name || "Unknown"}
