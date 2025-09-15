@@ -339,30 +339,45 @@ const branchSemesters = {
   };
 
   // submit for approval
-  const handleSubmitPersonalForApproval = async () => {
-    setSubmittingForApproval(true);
-    setErr("");
-    try {
-      await API.post(
-        "/student/submit-profile",
-        {
-          sessionId: selectedSession,
-          ...formData,
-        },
-        { withCredentials: true }
-      );
-      setProfile((prev) => ({
-        ...prev,
-        status: { ...prev?.status, personal: "pending" }
-      }));
-      alert("✅ Personal details submitted for approval.");
-      fetchProfile(selectedSession);
-    } catch {
-      setErr("❌ Failed to submit personal details for approval.");
-    } finally {
-      setSubmittingForApproval(false);
-    }
-  };
+const handleSubmitPersonalForApproval = async () => {
+  setSubmittingForApproval(true);
+  setErr("");
+
+  // ✅ check empty fields
+  const emptyFields = Object.entries(formData)
+    .filter(([key, value]) => value === null || value === "")
+    .map(([key]) => key);
+
+  if (emptyFields.length > 0) {
+    setErr(`❌ Please fill all required fields before submitting.`);
+    setSubmittingForApproval(false);
+    return;
+  }
+
+  try {
+    await API.post(
+      "/student/submit-profile",
+      {
+        sessionId: selectedSession,
+        ...formData,
+      },
+      { withCredentials: true }
+    );
+
+    setProfile((prev) => ({
+      ...prev,
+      status: { ...prev?.status, personal: "pending" }
+    }));
+
+    alert("✅ Personal details submitted for approval.");
+    fetchProfile(selectedSession);
+  } catch {
+    setErr("❌ Failed to submit personal details for approval.");
+  } finally {
+    setSubmittingForApproval(false);
+  }
+};
+
 
   // Fixed sport handlers - properly manage the sports array
   const handleAddPtuIntercollegeSport = () => {
@@ -824,6 +839,7 @@ const branchSemesters = {
                             CRN
                           </label>
                           <input
+                          required
                             name="crn"
                             placeholder="Enter CRN"
                             value={formData.crn}
@@ -838,9 +854,10 @@ const branchSemesters = {
                             Date of Birth
                           </label>
                           <input
+                            required
                             name="dob"
                             type="date"
-                            value={formData.dob}
+                            value={formData.dob ? formData.dob.split("T")[0] : ""}
                             onChange={handleChange}
                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                             disabled={!selectedSessionIsActive || personalPending || profile?.isCloned}
@@ -852,6 +869,7 @@ const branchSemesters = {
                             Gender
                           </label>
                           <select
+                            required
                             name="gender"
                             value={formData.gender}
                             onChange={handleChange}
@@ -869,6 +887,7 @@ const branchSemesters = {
                             Father's Name
                           </label>
                           <input
+                            required
                             name="fatherName"
                             placeholder="Enter Father's Name"
                             value={formData.fatherName}
@@ -890,6 +909,7 @@ const branchSemesters = {
                               Matric Year
                             </label>
 <select
+  required
   name="yearOfPassingMatric"
   value={formData.yearOfPassingMatric}
   onChange={handleChange}
@@ -918,6 +938,7 @@ const branchSemesters = {
                               +2 Year
                             </label>
 <select
+  required
   name="yearOfPassingPlusTwo"
   value={formData.yearOfPassingPlusTwo}
   onChange={handleChange}
@@ -946,6 +967,7 @@ const branchSemesters = {
                               First Admission Date
                             </label>
                             <input
+                              required
                               name="firstAdmissionDate"
                               type="month"
                               value={formData.firstAdmissionDate}
@@ -960,6 +982,7 @@ const branchSemesters = {
                               Last Exam Name
                             </label>
 <select
+  required
   name="lastExamName"
   value={formData.lastExamName}
   onChange={handleChange}
@@ -1002,6 +1025,7 @@ const branchSemesters = {
                               Last Exam Year
                             </label>
 <select
+  required
   name="lastExamYear"
   value={formData.lastExamYear}
   onChange={handleChange}
@@ -1030,6 +1054,7 @@ const branchSemesters = {
                               Years of Participation
                             </label>
                            <select
+  required
   name="yearsOfParticipation"
   value={formData.yearsOfParticipation}
   onChange={handleChange}
@@ -1041,9 +1066,9 @@ const branchSemesters = {
              transition-colors"
 >
   <option value="">Select years</option>
-  {[...Array(10)].map((_, i) => (
-    <option key={i + 1} value={i + 1}>
-      {i + 1}
+  {[...Array(11)].map((_, i) => (
+    <option key={i} value={i}>
+      {i}
     </option>
   ))}
 </select>
@@ -1063,6 +1088,7 @@ const branchSemesters = {
                               Contact Number
                             </label>
                             <input
+                              required
                               name="contact"
                               placeholder="Enter contact number"
                               value={formData.contact}
@@ -1077,6 +1103,7 @@ const branchSemesters = {
                               Address
                             </label>
                             <textarea
+                              required
                               name="address"
                               placeholder="Enter your address"
                               value={formData.address}
@@ -1100,6 +1127,7 @@ const branchSemesters = {
                               Inter-College Graduate Course Count
                             </label>
 <select
+  required
   name="interCollegeGraduateCourse"
   value={formData.interCollegeGraduateCourse}
   onChange={handleChange}
@@ -1111,9 +1139,9 @@ const branchSemesters = {
              transition-colors"
 >
   <option value="">Select Number</option>
-  {[...Array(10)].map((_, i) => (
-    <option key={i + 1} value={i + 1}>
-      {i + 1}
+  {[...Array(11)].map((_, i) => (
+    <option key={i} value={i}>
+      {i }
     </option>
   ))}
 </select>
@@ -1125,6 +1153,7 @@ const branchSemesters = {
                               Inter-College PG Course Count
                             </label>
 <select
+  required
   name="interCollegePgCourse"
   value={formData.interCollegePgCourse}
   onChange={handleChange}
@@ -1136,9 +1165,9 @@ const branchSemesters = {
              transition-colors"
 >
   <option value="">Select Number</option>
-  {[...Array(10)].map((_, i) => (
-    <option key={i + 1} value={i + 1}>
-      {i + 1}
+  {[...Array(11)].map((_, i) => (
+    <option key={i} value={i}>
+      {i}
     </option>
   ))}
 </select>
@@ -1164,6 +1193,7 @@ const branchSemesters = {
                                 </svg>
                                 <div className="flex text-sm text-gray-600 dark:text-gray-400">
                                   <input
+                                    required
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp"
                                     onChange={(e) => handleUpload(e, "photo")}
@@ -1206,6 +1236,7 @@ const branchSemesters = {
                                 </svg>
                                 <div className="flex text-sm text-gray-600 dark:text-gray-400">
                                   <input
+                                    required
                                     name="signaturePhoto"
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp"
