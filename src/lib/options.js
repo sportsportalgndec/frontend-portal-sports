@@ -36,7 +36,15 @@ export const sportsList = [
   "Badminton",
   "Table Tennis",
   "Hockey",
-  "Athletics"
+  "Athletic",
+  "Swimming",
+  "Cycling",
+  "Cross Country",
+  "Lawn Tennis",
+  "Kabbadi",
+  "Weightlifting, Powerlifting & Best Physique",
+  "Handball",
+  'Chess'
 ];
 
 

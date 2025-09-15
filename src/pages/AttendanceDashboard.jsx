@@ -408,11 +408,11 @@ const AttendanceDashboard = ({ defaultSport }) => {
             </div> 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
               <div className="space-y-2"> 
-                <label className="text-sm font-medium text-foreground">Email (Optional)</label> 
+                <label className="text-sm font-medium text-foreground">Email</label> 
                 <Input name="email" type="email" placeholder="Enter email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /> 
               </div> 
               <div className="space-y-2"> 
-                <label className="text-sm font-medium text-foreground">Phone (Optional)</label> 
+                <label className="text-sm font-medium text-foreground">Phone</label> 
                 <Input name="phone" type="tel" placeholder="Enter phone number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /> 
               </div> 
             </div> 

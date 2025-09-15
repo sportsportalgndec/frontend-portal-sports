@@ -320,6 +320,8 @@ const AdminApprovalDashboard = () => {
                           <p className="text-muted-foreground">+2: {student.yearOfPassingPlusTwo || "N/A"}</p>
                           <p className="text-muted-foreground">Inter-College Graduate Course: {student.interCollegeGraduateCourse || "N/A"}</p>
                           <p className="text-muted-foreground">Inter-College PG Course: {student.interCollegePgCourse || "N/A"}</p>
+                          <p className="text-muted-foreground">Last exam name: {student.lastExamName || "N/A"}</p>
+                          <p className="text-muted-foreground">Last exam year: {student.lastExamYear || "N/A"}</p>
                         </div>
                         <div>
                           <span className="font-medium text-foreground">Participation:</span>
