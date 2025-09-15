@@ -40,27 +40,28 @@ export default function Students() {
   const [sessions, setSessions] = useState([]);
 
   const courses = [
-    "B.Tech.(Civil Engineering)",
-    "B.Tech.(Computer Science and Engineering)",
-    "B.Tech.(Electrical Engineering)",
-    "B.Tech.(Electronics and Communication Engineering)",
-    "B.Tech.(Information Technology)",
-    "B.Tech.(Mechanical Engineering)",
-    "B.Tech.(Robotics and Artificial Intelligence)",
-    "M.Tech.(Electronics and Communication Engineering)",
-    "M.Tech.(Environmental Science and Engineering)",
-    "M.Tech.(Computer Science and Information Technology)",
-    "M.Tech.(Power Engineering)",
-    "M.Tech.(Production Engineering)",
-    "M.Tech.(Structural Engineering)",
-    "M.Tech.(Computer Science and Engineering)",
-    "MBA (Masters in Business Administration)",
-    "MCA (Masters in Computer Application)",
-    "BCA (Bachelor of Computer Applications)",
-    "BBA (Bachelor of Business Administration)",
-    "B.Voc.(Interior Design)",
-    "B.Com.(Entrepreneurship)"
-  ];
+  "B.Voc.(Interior Design)",
+  "B.Com.(Entrepreneurship)",
+  "B.Tech.(Civil Engineering)",
+  "B.Tech.(Computer Science and Engineering)",
+  "B.Tech.(Electrical Engineering)",
+  "B.Tech.(Electronics and Communication Engineering)",
+  "B.Tech.(Information Technology)",
+  "B.Tech.(Mechanical Engineering)",
+  "B.Tech.(Robotics and Artificial Intelligence)",
+  "M.Tech.(Electronics and Communication Engineering)",
+  "M.Tech.(Environmental Science and Engineering)",
+  "M.Tech.(Computer Science and Information Technology)",
+  "M.Tech.(Power Engineering)",
+  "M.Tech.(Production Engineering)",
+  "M.Tech.(Structural Engineering)",
+  "M.Tech.(Computer Science and Engineering)",
+  "MBA (Masters in Business Administration)",
+  "MCA (Masters in Computer Application)",
+  "BCA (Bachelor of Computer Applications)",
+  "BBA (Bachelor of Business Administration)",
+  "B.Arch (Bachelor of Architecture)"
+];
   const years = [1, 2, 3, 4, 5];
 
   // Load active session on mount
