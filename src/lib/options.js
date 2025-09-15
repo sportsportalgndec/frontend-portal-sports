@@ -23,7 +23,8 @@ export const branches = [
   "BCA (Bachelor of Computer Applications)",
   "BBA (Bachelor of Business Administration)",
   "B.Voc.(Interior Design)",
-  "B.Com.(Entrepreneurship)"
+  "B.Com.(Entrepreneurship)",
+  "B. Arch"
 ];
 
 export const years = [1, 2, 3, 4, 5];
