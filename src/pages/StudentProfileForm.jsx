@@ -970,30 +970,30 @@ const branchSemesters = {
              disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed 
              transition-colors"
 >
-  <option value="">Select Semester</option>
-  {(() => {
-    const totalSemesters = branchSemesters[formData.branch] || 0;
+  <option value="">Select Option</option>
+  <option value="+2">+2</option>
+  <option value="diploma">Diploma</option>
+  {Array.from({ length: 10 }, (_, i) => {
+    const semesterNumber = i + 1;
+    const suffix =
+      semesterNumber === 1
+        ? "st"
+        : semesterNumber === 2
+        ? "nd"
+        : semesterNumber === 3
+        ? "rd"
+        : "th";
 
-    return Array.from({ length: totalSemesters }, (_, i) => {
-      const semesterNumber = i + 1;
-      const suffix =
-        semesterNumber === 1
-          ? "st"
-          : semesterNumber === 2
-          ? "nd"
-          : semesterNumber === 3
-          ? "rd"
-          : "th";
-
-      return (
-        <option key={semesterNumber} value={`${semesterNumber} Semester`}>
-          {semesterNumber}
-          {suffix} Semester
-        </option>
-      );
-    });
-  })()}
+    return (
+      <option key={semesterNumber} value={`${semesterNumber} Semester`}>
+        {semesterNumber}
+        {suffix} Semester
+      </option>
+    );
+  })}
+  
 </select>
+
 
                           </div>
 
