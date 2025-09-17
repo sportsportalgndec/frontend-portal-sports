@@ -171,9 +171,9 @@ const exportToExcel = async (students) => {
       s.firstAdmissionYear || "",
       s.lastExam || "",
       s.lastExamYear || "",
-      s.interCollegeGraduateYears || "",
-      s.interCollegePgYears || "",
-      s.interVarsityYears || "",
+      s.interCollegeGraduateCourse || "",
+      s.interCollegePgCourse || "",
+      s.yearsOfParticipation || "",
       "",
       s.addressWithPhone || "",
       "",
@@ -301,9 +301,9 @@ const exportToWord = async (students) => {
       formatDate(s.firstAdmissionYear),
       safeText(s.lastExam),
       safeText(s.lastExamYear),
-      safeText(s.interCollegeGraduateYears),
-      safeText(s.interCollegePgYears),
-      safeText(s.interVarsityYears),
+      safeText(s.interCollegeGraduateCourse),
+      safeText(s.interCollegePgCourse),
+      safeText(s.yearsOfParticipation),
       signatureImage ? new ImageRun({ data:signatureImage, transformation:{ width:60, height:30 } }) : "",
       safeText(s.addressWithPhone),
       passportImage ? new ImageRun({ data:passportImage, transformation:{ width:60, height:60 } }) : "",
@@ -428,7 +428,7 @@ const loadImage = (url, maxWidth = 150, maxHeight = 200) =>
   });
 
 // 🔹 Main Export
-const exportToPDF = async (students, category, sport, year, manager) => {
+const exportToPDF = async (students, category, sport, year, manager,pdfCollege) => {
   const batchSize = 50; // students per PDF
   const totalBatches = Math.ceil(students.length / batchSize);
 
@@ -471,9 +471,10 @@ const exportToPDF = async (students, category, sport, year, manager) => {
     let y = 90;
     let x = 40;
 
-    const collegeText = "College: Guru Nanak Dev Engg. College Ludhiana    ";
-    doc.text(collegeText, x, y);
-    x += doc.getTextWidth(collegeText);
+const collegeText = `College: ${pdfCollege}    `;
+doc.text(collegeText, x, y);
+x += doc.getTextWidth(collegeText);
+
 
     const addField = (label, value) => {
       doc.setFont("times", "normal");
@@ -536,27 +537,30 @@ const exportToPDF = async (students, category, sport, year, manager) => {
         const photo = await loadImage(s.passportPhotoUrl);
         const signature = await loadImage(s.signatureUrl);
 
-        return [
-          index + 1,
-          s.name || "",
-          s.fatherName || "",
-          s.dob || "",
-          s.universityRegNo || "",
-          s.branchYear || "",
-          s.matricYear || "",
-          s.plusTwoYear || "",
-          s.firstAdmissionYear || "",
-          s.lastExam || "",
-          s.lastExamYear || "",
-          s.interCollegeGraduateYears || "",
-          s.interCollegePgYears || "",
-          s.interVarsityYears || "",
-          { content: signature ? "" : "", styles: { minCellHeight: 40 } },
-          s.addressWithPhone || "",
-          { content: photo ? "" : "", styles: { minCellHeight: 50 } },
-        ];
-      })
-    );
+      // helper function -> undefined/null to "", baaki values same rahengi
+    const safeVal = (val) => (val === undefined || val === null ? "" : val);
+
+    return [
+      index + 1,
+      safeVal(s.name),
+      safeVal(s.fatherName),
+      safeVal(s.dob),
+      safeVal(s.universityRegNo),
+      safeVal(s.branchYear),
+      safeVal(s.matricYear),
+      safeVal(s.plusTwoYear),
+      safeVal(s.firstAdmissionYear),
+      safeVal(s.lastExam),
+      safeVal(s.lastExamYear),
+      safeVal(s.interCollegeGraduateCourse),
+      safeVal(s.interCollegePgCourse),
+      safeVal(s.yearsOfParticipation),
+      { content: signature ? "" : "", styles: { minCellHeight: 40 } },
+      safeVal(s.addressWithPhone),
+      { content: photo ? "" : "", styles: { minCellHeight: 50 } },
+    ];
+  })
+);
 
     autoTable(doc, {
       head,
@@ -578,66 +582,78 @@ const exportToPDF = async (students, category, sport, year, manager) => {
         fillColor: [255, 255, 255],
       },
       tableWidth: "auto",
-      didDrawCell: (data) => {
-        if (data.column.index === 14 && batchStudents[data.row.index]) {
-          const sig = batchStudents[data.row.index].signatureUrl;
-          if (sig) {
-            doc.addImage(
-              sig,
-              "JPEG",
-              data.cell.x + 2,
-              data.cell.y + 2,
-              40,
-              20
-            );
-          }
-        }
-        if (data.column.index === 16 && batchStudents[data.row.index]) {
-          const photo = batchStudents[data.row.index].passportPhotoUrl;
-          if (photo) {
-            doc.addImage(
-              photo,
-              "JPEG",
-              data.cell.x + 8,
-              data.cell.y + 2,
-              35,
-              45
-            );
-          }
-        }
-      },
+        columnStyles: {
+    11: { cellWidth: 50 },  
+  },
+didDrawCell: (data) => {
+  // Sirf body ke liye run kare
+  if (data.section === "body") {
+    // Signature column (14th index)
+    if (data.column.index === 14) {
+      const sig = batchStudents[data.row.index]?.signatureUrl;
+      if (sig) {
+        const imgWidth = 40;
+        const imgHeight = 20;
+        const x = data.cell.x + (data.cell.width - imgWidth) / 2;
+        const y = data.cell.y + (data.cell.height - imgHeight) / 2;
+        doc.addImage(sig, "JPEG", x, y, imgWidth, imgHeight);
+      }
+    }
+
+    // Passport photo column (16th index)
+    if (data.column.index === 16) {
+      const photo = batchStudents[data.row.index]?.passportPhotoUrl;
+      if (photo) {
+        const imgWidth = 35;
+        const imgHeight = 45;
+        const x = data.cell.x + (data.cell.width - imgWidth) / 2;
+        const y = data.cell.y + (data.cell.height - imgHeight) / 2;
+        doc.addImage(photo, "JPEG", x, y, imgWidth, imgHeight);
+      }
+    }
+  }
+}
+,
     });
 
-    // 🔹 Footer (certifications + signatures)
-    const pageHeight = doc.internal.pageSize.height;
-    let certY = pageHeight - 120;
-    doc.setFont("times", "normal");
-    doc.setFontSize(10);
+// 🔹 Footer (certifications + signatures)
+const pageHeight = doc.internal.pageSize.height;
+const pageWidth = doc.internal.pageSize.width;
+let certY = pageHeight - 110; // upar thoda jagah
+doc.setFont("times", "normal");
+doc.setFontSize(10);
 
-    const colWidth = doc.internal.pageSize.width / 3 - 40;
-    const col1X = 40;
-    const col2X = col1X + colWidth + 20;
-    const col3X = col2X + colWidth + 20;
+// Teen columns ki width
+const colWidth = pageWidth / 3 - 40;
+const col1X = 40;
+const col2X = col1X + colWidth + 20;
+const col3X = col2X + colWidth + 20;
 
-    const certs = [
-      "Certified that particulars given above have been verified and checked",
-      "Certified that the players are not employed anywhere on full time basis.",
-      "Certified that the eligibility of the students listed herein has been verified and they are eligible.",
-    ];
+const certs = [
+  "Certified that particulars given above have been verified and checked.",
+  "Certified that the players are not employed anywhere on full time basis.",
+  "Certified that the eligibility of the students listed herein has been verified and they are eligible.",
+];
 
-    certs.forEach((c, i) => {
-      const x = [col1X, col2X, col3X][i];
-      const lines = doc.splitTextToSize(c, colWidth);
-      doc.text(lines, x, certY);
-    });
+// Wrap text aur draw karo
+certs.forEach((c, i) => {
+  const x = [col1X, col2X, col3X][i];
+  const lines = doc.splitTextToSize(c, colWidth);
+  doc.text(lines, x, certY);
+});
 
-    let signY = pageHeight - 60;
-    doc.text("Date: ___________", col1X, signY);
-    doc.text("Signature of DPE/Lecturer Physical Edu.", col2X, signY);
-    doc.setFont("times", "bold");
-    doc.text("PRINCIPAL", col3X, signY);
-    doc.setFont("times", "normal");
-    doc.text("(Seal of College)", col3X, signY + 15);
+// 🔹 Signatures line
+let signY = pageHeight - 50;
+doc.setFont("times", "normal");
+doc.text("Date: ___________", col1X, signY);
+
+doc.text("Signature of DPE/Lecturer Physical Edu.", col2X, signY);
+
+doc.setFont("times", "bold");
+doc.text("PRINCIPAL", col3X, signY);
+doc.setFont("times", "normal");
+doc.text("(Seal of College)", col3X, signY + 15);
+
 
     // Save per batch
     doc.save(`Eligibility_Form_Part${batchIndex + 1}.pdf`);
@@ -663,6 +679,8 @@ const StudentExport = () => {
   const [pdfSport, setPdfSport] = useState('Badminton');
   const [pdfYear, setPdfYear] = useState('2024-25');
   const [pdfManager, setPdfManager] = useState('Dr. Gunjan Bhardwaj');
+  const [pdfCollege, setPdfCollege] = useState('Guru Nanak Dev Engg. College Ludhiana');
+
 
   // 🔹 Preview state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -786,7 +804,7 @@ const StudentExport = () => {
     } else if (previewMode === "word") {
       await exportToWord(data);
     } else if (previewMode === "pdf") {
-      await exportToPDF(data, pdfCategory, pdfSport, pdfYear, pdfManager);
+      await exportToPDF(data, pdfCategory, pdfSport, pdfYear, pdfManager,pdfCollege);
     }
     setIsPreviewOpen(false);
     setPreviewMode(null);
@@ -991,9 +1009,9 @@ const StudentExport = () => {
                           <p className="text-sm text-muted-foreground">Last Exam: {stu.lastExam} ({stu.lastExamYear})</p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Graduate Years: {stu.interCollegeGraduateYears}</p>
-                          <p className="text-sm text-muted-foreground">PG Years: {stu.interCollegePgYears}</p>
-                          <p className="text-sm text-muted-foreground">Inter Varsity: {stu.interVarsityYears}</p>
+                          <p className="text-sm text-muted-foreground">Graduate Years: {stu.interCollegeGraduateCourse}</p>
+                          <p className="text-sm text-muted-foreground">PG Years: {stu.interCollegePgCourse}</p>
+                          <p className="text-sm text-muted-foreground">Inter Varsity: {stu.yearsOfParticipation}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Address: {stu.addressWithPhone}</p>
@@ -1098,6 +1116,21 @@ const StudentExport = () => {
                     className="bg-background text-foreground border-border placeholder:text-muted-foreground"
                   />
                 </div>
+                <div className="space-y-2">
+  <label className="text-sm font-medium text-foreground">College:</label>
+  <Select
+    value={pdfCollege}
+    onChange={(e) => setPdfCollege(e.target.value)}
+    className="bg-background text-foreground border-border"
+  >
+    <option value="Guru Nanak Dev Engg. College Ludhiana">
+      Guru Nanak Dev Engg. College Ludhiana
+    </option>
+    <option value="GNDEC School of Architecture">
+      GNDEC School of Architecture
+    </option>
+  </Select>
+</div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Manager:</label>
@@ -1259,9 +1292,9 @@ const StudentExport = () => {
                             <td className="border p-2">{s.firstAdmissionYear || ""}</td>
                             <td className="border p-2">{s.lastExam || ""}</td>
                             <td className="border p-2">{s.lastExamYear || ""}</td>
-                            <td className="border p-2">{s.interCollegeGraduateYears || ""}</td>
-                            <td className="border p-2">{s.interCollegePgYears || ""}</td>
-                            <td className="border p-2">{s.interVarsityYears || ""}</td>
+                            <td className="border p-2">{s.interCollegeGraduateCourse || ""}</td>
+                            <td className="border p-2">{s.interCollegePgCourse || ""}</td>
+                            <td className="border p-2">{s.yearsOfParticipation || ""}</td>
                             <td className="border p-2 text-center">
                               {s.signatureUrl ? <img src={s.signatureUrl} alt="signature" className="inline-block" style={{ width: 100, height: 40, objectFit: 'contain' }} /> : ""}
                             </td>
@@ -1366,9 +1399,9 @@ const StudentExport = () => {
                             <td className="border p-2">{s.firstAdmissionYear || ""}</td>
                             <td className="border p-2">{s.lastExam || ""}</td>
                             <td className="border p-2">{s.lastExamYear || ""}</td>
-                            <td className="border p-2">{s.interCollegeGraduateYears || ""}</td>
-                            <td className="border p-2">{s.interCollegePgYears || ""}</td>
-                            <td className="border p-2">{s.interVarsityYears || ""}</td>
+                            <td className="border p-2">{s.interCollegeGraduateCourse || ""}</td>
+                            <td className="border p-2">{s.interCollegePgCourse || ""}</td>
+                            <td className="border p-2">{s.yearsOfParticipation || ""}</td>
                             <td className="border p-2 text-center">
                               {s.signatureUrl ? <img src={s.signatureUrl} alt="signature" className="inline-block" style={{ width: 100, height: 40, objectFit: 'contain' }} /> : ""}
                             </td>
@@ -1496,9 +1529,9 @@ const StudentExport = () => {
                             <td className="border p-2">{formatDate(s.firstAdmissionYear) || ""}</td>
                             <td className="border p-2">{s.lastExam || ""}</td>
                             <td className="border p-2">{s.lastExamYear || ""}</td>
-                            <td className="border p-2">{s.interCollegeGraduateYears || ""}</td>
-                            <td className="border p-2">{s.interCollegePgYears || ""}</td>
-                            <td className="border p-2">{s.interVarsityYears || ""}</td>
+                            <td className="border p-2">{s.interCollegeGraduateCourse || ""}</td>
+                            <td className="border p-2">{s.interCollegePgCourse || ""}</td>
+                            <td className="border p-2">{s.yearsOfParticipation || ""}</td>
                             <td className="border p-2 text-center">
                               {s.signatureUrl ? <img src={s.signatureUrl} alt="signature" className="inline-block" style={{ width: 60, height: 30, objectFit: 'contain' }} /> : ""}
                             </td>
