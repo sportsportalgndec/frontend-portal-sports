@@ -442,18 +442,30 @@ const handleSubmitPersonalForApproval = async () => {
     setInterUniversityLevelSport("");
   };
 
-  // remove sport
+  // remove sport (local UI + formData)
   const handleRemoveSport = (sport) => {
-    if (adminSports.includes(sport)) return;
+    // Only allow delete if status is 'none'
+    if (!isSportNone(sport)) return;
+    
+    // Remove from formData.sports
     setFormData((prev) => ({
       ...prev,
       sports: prev.sports.filter((s) => s !== sport),
     }));
+    
+    // Also remove from adminSports if it exists there
+    setAdminSports((prev) => prev.filter((s) => s !== sport));
   };
 
   // submit sports
   const handleSubmitSports = async () => {
-    if (!formData.sports.length) return;
+    // Include all sports that should be submitted
+    const allSportsToSubmit = Array.from(new Set([
+      ...(adminSports || []),
+      ...(formData?.sports || []),
+    ]));
+    
+    if (!allSportsToSubmit.length) return;
     setSportsSubmitting(true);
     setErr("");
     try {
@@ -461,7 +473,7 @@ const handleSubmitPersonalForApproval = async () => {
         "/student/submit-profile",
         {
           sessionId: selectedSession,
-          sports: formData.sports,
+          sports: allSportsToSubmit,
         },
         { withCredentials: true }
       );
@@ -481,7 +493,13 @@ const handleSubmitPersonalForApproval = async () => {
 
   // save sports data - PRESERVE: existing API call
   const handleSaveSports = async () => {
-    if (!formData.sports.length) return;
+    // Include all sports that should be saved
+    const allSportsToSave = Array.from(new Set([
+      ...(adminSports || []),
+      ...(formData?.sports || []),
+    ]));
+    
+    if (!allSportsToSave.length) return;
     setSportsSubmitting(true);
     setErr("");
     try {
@@ -489,7 +507,7 @@ const handleSubmitPersonalForApproval = async () => {
         "/student/profile",
         {
           sessionId: selectedSession,
-          sports: formData.sports,
+          sports: allSportsToSave,
         },
         { withCredentials: true }
       );
@@ -543,12 +561,44 @@ const handleSubmitPersonalForApproval = async () => {
   const personalApproved = profile?.status?.personal === "approved";
 
   // ---- Sports states ----
-  const sportsPending = profile?.status?.sports === "pending";
   const sportsApproved = profile?.status?.sports === "approved";
+  const sportsStatus = profile?.status?.sports;
+
+  // Helper: check if a specific sport is approved in profile.sportsDetails
+  const isSportApproved = (sportName) => {
+    const details = profile?.sportsDetails || [];
+    const found = details.find((s) => s.sport === sportName);
+    return found?.status === "approved";
+  };
+  const getSportStatus = (sportName) => {
+    const details = profile?.sportsDetails || [];
+    const found = details.find((s) => s.sport === sportName);
+    
+    console.log(`Getting status for "${sportName}":`, {
+      found: found,
+      status: found?.status,
+      allSportsDetails: details
+    });
+    
+    // Always prioritize sportsDetails status if found
+    if (found) {
+      return found.status;
+    }
+    
+    // If not found in sportsDetails, check if it's a new sport (not yet in sportsDetails)
+    // This would be a sport that was just added and hasn't been processed yet
+    return "none";
+  };
+  const isSportPending = (sportName) => getSportStatus(sportName) === "pending";
+  const isSportNone = (sportName) => getSportStatus(sportName) === "none";
 
   // ---- Disable conditions ----
   const readOnlyPersonal = !selectedSessionIsActive || personalPending || personalApproved;
-  const disableSports = !personalApproved || sportsPending || sportsApproved;
+  const combinedSportsList = Array.from(new Set([
+    ...(adminSports || []),
+    ...(formData?.sports || []),
+  ]));
+  const hasAnyPendingSports = combinedSportsList.some((s) => isSportPending(s));
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -770,10 +820,10 @@ const handleSubmitPersonalForApproval = async () => {
                         <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Sports Details</span>
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           sportsApproved ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                          sportsPending ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                          sportsStatus === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
                           'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                         }`}>
-                          {sportsApproved ? 'Approved' : sportsPending ? 'Pending' : 'Not Submitted'}
+                          {sportsApproved ? 'Approved' : sportsStatus === 'pending' ? 'Pending' : 'Not Submitted'}
                         </span>
                       </div>
                     </div>
@@ -1276,7 +1326,7 @@ const handleSubmitPersonalForApproval = async () => {
                         <button
                           type="button"
                           onClick={handleSavePersonal}
-                          disabled={!selectedSessionIsActive || personalPending || submitting}
+                          disabled={!selectedSessionIsActive || personalPending || submitting ||uploadingSignature || uploadingPhoto}
                           className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg"
                         >
                           {submitting ? (
@@ -1300,7 +1350,7 @@ const handleSubmitPersonalForApproval = async () => {
                           type="button"
                           onClick={handleSubmitPersonalForApproval}
                           disabled={
-                            !selectedSessionIsActive || personalPending || personalApproved || submittingForApproval
+                            !selectedSessionIsActive || personalPending || personalApproved || submittingForApproval || uploadingSignature || uploadingPhoto
                           }
                           className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg"
                         >
@@ -1466,7 +1516,7 @@ const handleSubmitPersonalForApproval = async () => {
 
                   {personalApproved && !sportsApproved && (
                     <>
-                      {sportsPending && (
+                      {sportsStatus === 'pending' && (
                         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
                           <div className="flex">
                             <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -1483,27 +1533,48 @@ const handleSubmitPersonalForApproval = async () => {
                       <div className="mb-6">
                         <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Current Sports</h4>
                         <div className="flex flex-wrap gap-2">
-                          {[
-                            ...adminSports,
-                            ...formData.sports.filter((s) => !adminSports.includes(s)),
-                          ].map((sport, idx) => (
-                            <span
-                              key={idx}
-                              className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full flex items-center space-x-2 text-sm font-medium"
-                            >
-                              <span>{sport}</span>
-                              {!adminSports.includes(sport) && !sportsPending && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveSport(sport)}
-                                  className="text-red-500 hover:text-red-700"
-                                  disabled={!selectedSessionIsActive}
-                                >
-                                  ✕
-                                </button>
-                              )}
-                            </span>
-                          ))}
+                          {combinedSportsList.map((sport, idx) => {
+                            const status = getSportStatus(sport);
+                            const isPending = status === "pending";
+                            const isNone = status === "none";
+                            const isApproved = status === "approved";
+                            
+                            
+                            return (
+                              <span
+                                key={idx}
+                                className={`px-3 py-1 rounded-full flex items-center space-x-2 text-sm font-medium border ${
+                                  isPending
+                                    ? "bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
+                                    : isApproved
+                                    ? "bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+                                    : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"
+                                }`}
+                              >
+                                <span>{sport}</span>
+                                {isPending && (
+                                  <span className="ml-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-800/50 text-yellow-800 dark:text-yellow-200">
+                                    Pending
+                                  </span>
+                                )}
+                                {isApproved && (
+                                  <span className="ml-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200">
+                                    Approved
+                                  </span>
+                                )}
+                                {isNone && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveSport(sport)}
+                                    className="text-red-500 hover:text-red-700 disabled:text-gray-400 disabled:hover:text-gray-400"
+                                    disabled={!selectedSessionIsActive}
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -1521,7 +1592,7 @@ const handleSubmitPersonalForApproval = async () => {
                             <select
                               value={ptuIntercollegeSport}
                               onChange={(e) => setPtuIntercollegeSport(e.target.value)}
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                             >
                               <option value="">Select sport</option>
@@ -1533,7 +1604,7 @@ const handleSubmitPersonalForApproval = async () => {
                               type="button"
                               onClick={handleAddPtuIntercollegeSport}
                               className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                             >
                               +
                             </button>
@@ -1552,7 +1623,7 @@ const handleSubmitPersonalForApproval = async () => {
                             <select
                               value={nationalLevelSport}
                               onChange={(e) => setNationalLevelSport(e.target.value)}
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                             >
                               <option value="">Select sport</option>
@@ -1564,7 +1635,7 @@ const handleSubmitPersonalForApproval = async () => {
                               type="button"
                               onClick={handleAddNationalLevelSport}
                               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                             >
                               +
                             </button>
@@ -1583,7 +1654,7 @@ const handleSubmitPersonalForApproval = async () => {
                             <select
                               value={stateLevelSport}
                               onChange={(e) => setStateLevelSport(e.target.value)}
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                             >
                               <option value="">Select sport</option>
@@ -1595,7 +1666,7 @@ const handleSubmitPersonalForApproval = async () => {
                               type="button"
                               onClick={handleAddStateLevelSport}
                               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                             >
                               +
                             </button>
@@ -1614,7 +1685,7 @@ const handleSubmitPersonalForApproval = async () => {
                             <select
                               value={interUniversityLevelSport}
                               onChange={(e) => setInterUniversityLevelSport(e.target.value)}
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                             >
                               <option value="">Select sport</option>
@@ -1626,7 +1697,7 @@ const handleSubmitPersonalForApproval = async () => {
                               type="button"
                               onClick={handleAddInterUniversityLevelSport}
                               className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                             >
                               +
                             </button>
@@ -1645,7 +1716,7 @@ const handleSubmitPersonalForApproval = async () => {
                             <select
                               value={internationalLevelSport}
                               onChange={(e) => setInternationalLevelSport(e.target.value)}
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                             >
                               <option value="">Select sport</option>
@@ -1657,7 +1728,7 @@ const handleSubmitPersonalForApproval = async () => {
                               type="button"
                               onClick={handleAddInternationalLevelSport}
                               className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                              disabled={!selectedSessionIsActive || sportsPending}
+                              disabled={!selectedSessionIsActive}
                             >
                               +
                             </button>
@@ -1666,12 +1737,12 @@ const handleSubmitPersonalForApproval = async () => {
                       </div>
 
                       {/* Action Buttons */}
-                      {formData.sports.length > 0 && (
+                      {combinedSportsList.length > 0 && (
                         <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                           <button
                             type="button"
                             onClick={handleSaveSports}
-                            disabled={!selectedSessionIsActive || sportsPending || sportsSubmitting}
+                            disabled={!selectedSessionIsActive || sportsSubmitting || hasAnyPendingSports}
                             className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg"
                           >
                             {sportsSubmitting ? (
@@ -1694,7 +1765,7 @@ const handleSubmitPersonalForApproval = async () => {
                           <button
                             type="button"
                             onClick={handleSubmitSports}
-                            disabled={!selectedSessionIsActive || sportsPending || sportsSubmitting}
+                            disabled={!selectedSessionIsActive || sportsSubmitting || hasAnyPendingSports}
                             className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg"
                           >
                             {sportsSubmitting ? (

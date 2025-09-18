@@ -997,6 +997,7 @@ const StudentExport = () => {
                           <h3 className="font-semibold text-foreground">{stu.name}</h3>
                           <p className="text-sm text-muted-foreground">Father: {stu.fatherName}</p>
                           <p className="text-sm text-muted-foreground">DOB: {stu.dob}</p>
+                          <p className="text-sm text-muted-foreground">Gender: {stu.gender}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">URN: {stu.universityRegNo}</p>
@@ -1123,11 +1124,11 @@ const StudentExport = () => {
     onChange={(e) => setPdfCollege(e.target.value)}
     className="bg-background text-foreground border-border"
   >
-    <option value="Guru Nanak Dev Engg. College Ludhiana">
-      Guru Nanak Dev Engg. College Ludhiana
+    <option value="Guru Nanak Dev Engg. College, Ludhiana">
+      Guru Nanak Dev Engg. College, Ludhiana
     </option>
-    <option value="GNDEC School of Architecture">
-      GNDEC School of Architecture
+    <option value="GNDEC School of Architecture, Ludhiana">
+      GNDEC School of Architecture, Ludhiana
     </option>
   </Select>
 </div>

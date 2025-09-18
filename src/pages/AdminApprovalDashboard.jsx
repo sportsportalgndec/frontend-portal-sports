@@ -55,37 +55,31 @@ const AdminApprovalDashboard = () => {
   }, []);
 
   // ✅ Update student status
-  const updateStudentStatus = async (studentId, type, status) => {
-    try {
-      if (status === "approved") {
-        await API.put(
-          `/admin/student/${studentId}/approve?type=${type}`,
-          {},
-          { withCredentials: true }
-        );
-      } else {
-        await API.delete(
-          `/admin/student/${studentId}/reject?type=${type}`,
-          { withCredentials: true }
-        );
-      }
-
-      setPendingStudents((prev) =>
-        prev.filter(
-          (s) =>
-            !(
-              s._id === studentId &&
-              ((type === "personal" && s.pendingPersonal) ||
-                (type === "sports" && s.pendingSports))
-            )
-        )
+const updateStudentStatus = async (studentId, type, status, sport) => {
+  try {
+    if (status === "approved") {
+      await API.put(
+        `/admin/student/${studentId}/approve?type=${type}${type === "sports" ? `&sport=${sport}` : ""}`,
+        {},
+        { withCredentials: true }
       );
-      alert(`✅ Student ${type} ${status} successfully!`);
-    } catch (err) {
-      console.error(`Error updating student ${type}`, err);
-      alert(`❌ Failed to ${status} student ${type}.`);
+    } else {
+      await API.delete(
+        `/admin/student/${studentId}/reject?type=${type}${type === "sports" ? `&sport=${sport}` : ""}`,
+        { withCredentials: true }
+      );
     }
-  };
+
+    // Refresh lists from server to ensure UI reflects latest state
+    await fetchAllData();
+
+    alert(`✅ Student ${type} ${status} successfully!`);
+  } catch (err) {
+    console.error(`Error updating student ${type}`, err);
+    alert(`❌ Failed to ${status} student ${type}.`);
+  }
+};
+
 
   // ✅ Update team status
   const updateTeamStatus = async (teamId, status) => {
@@ -95,7 +89,8 @@ const AdminApprovalDashboard = () => {
         { status },
         { withCredentials: true }
       );
-      setPendingTeams((prev) => prev.filter((team) => team._id !== teamId));
+      // Refresh lists from server to ensure UI reflects latest state
+      await fetchAllData();
       alert(`✅ Team ${status} successfully!`);
     } catch (err) {
       console.error("Error updating team status", err);
@@ -270,27 +265,28 @@ const AdminApprovalDashboard = () => {
                               </Button>
                             </div>
                           )}
-                          {student.pendingSports && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => updateStudentStatus(student._id, "sports", "approved")}
-                                className="flex items-center gap-2"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                                Approve Sports
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => updateStudentStatus(student._id, "sports", "rejected")}
-                                className="flex items-center gap-2"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                Reject Sports
-                              </Button>
-                            </div>
-                          )}
+{student.pendingSports && (
+  <div className="flex gap-2">
+    <Button
+      size="sm"
+      onClick={() => updateStudentStatus(student._id, "sports", "approved", student.sports)}
+      className="flex items-center gap-2"
+    >
+      <CheckCircle className="w-4 h-4" />
+      Approve Sports
+    </Button>
+    <Button
+      size="sm"
+      variant="destructive"
+      onClick={() => updateStudentStatus(student._id, "sports", "rejected", student.sports)}
+      className="flex items-center gap-2"
+    >
+      <XCircle className="w-4 h-4" />
+      Reject Sports
+    </Button>
+  </div>
+)}
+
                         </div>
                         
                         {/* Status Indicators */}
@@ -331,9 +327,15 @@ const AdminApprovalDashboard = () => {
                         </div>
                         <div>
                           <span className="font-medium text-foreground">Sports:</span>
-                          <p className="text-muted-foreground">
-                            {student.sports?.length > 0 ? student.sports.join(", ") : "N/A"}
-                          </p>
+<p className="text-muted-foreground">
+  {student.sportsDetails?.filter(s => s.status === "pending").length > 0
+    ? student.sportsDetails
+        .filter(s => s.status === "pending")
+        .map(s => s.sport)
+        .join(", ")
+    : "N/A"}
+</p>
+
                         </div>
                       </div>
                     </div>

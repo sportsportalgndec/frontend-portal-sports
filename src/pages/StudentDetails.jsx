@@ -25,6 +25,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import API from "../services/api";
+import { sportsList } from "../lib/options";
 
 const StudentDetails = ({  }) => {
   const params = useParams();
@@ -35,6 +36,31 @@ const StudentDetails = ({  }) => {
   const [form, setForm] = useState({});
   const [error, setError] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
+
+  // Sports helpers
+  const SPORT_LEVEL_PREFIXES = [
+    "Inter-University Level",
+    "State Level",
+    "International Level",
+    "National Level",
+    "PTU Intercollege"
+  ];
+
+  const POSITION_OPTIONS = ["pending", "participated", "1st", "2nd", "3rd"]; // keep enum order friendly
+
+  const parseSport = (value) => {
+    if (!value || typeof value !== "string") return { level: "", name: "" };
+    const prefix = SPORT_LEVEL_PREFIXES.find((p) => value.startsWith(p + " "));
+    if (prefix) return { level: prefix, name: value.slice(prefix.length + 1) };
+    return { level: "", name: value };
+  };
+
+  const composeSport = ({ level, name }) => {
+    const cleanName = (name || "").trim();
+    const cleanLevel = (level || "").trim();
+    if (!cleanName) return "";
+    return cleanLevel ? `${cleanLevel} ${cleanName}` : cleanName;
+  };
 
   const id =  params.id; // ✅ agar prop mila to use kar, warna URL param se le
 
@@ -89,13 +115,18 @@ const handleUpdate = async () => {
         form[key] !== null &&
         key !== "photo" &&
         key !== "signaturePhoto" &&
-        key !== "positions" // ⚡ positions ko handle alag se
+        key !== "positions"&& // ⚡ positions ko handle alag se
+        key !== "sportsDetails"
       ) {
         if (key === "userId" && typeof form[key] === "object" && form[key]._id) {
           formData.append("userId", form[key]._id);
         } else if (key === "session" && typeof form[key] === "object" && form[key]._id) {
           formData.append("session", form[key]._id);
-        } else {
+        }else if (key === "status" && typeof form[key] === "object") {
+  // 🟢 Bas direct nested field bhejna
+  formData.append("statusPersonal", form[key].personal || "none");
+}
+ else {
           formData.append(key, form[key]);
         }
       }
@@ -105,7 +136,10 @@ const handleUpdate = async () => {
     if (form.positions && Array.isArray(form.positions)) {
       formData.append("positions", JSON.stringify(form.positions));
     }
-
+    if (form.sportsDetails && Array.isArray(form.sportsDetails)) {
+      const uniqueSportsDetails = [...new Map(form.sportsDetails.map(s => [s.sport, s])).values()];
+      formData.append("sportsDetails", JSON.stringify(uniqueSportsDetails));
+    }
     // ✅ Append file fields separately
     if (form.photo instanceof File) {
       formData.append("photo", form.photo);
@@ -555,66 +589,99 @@ const handleUpdate = async () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Sports</label>
-                  <Input
-                    name="sports"
-                    value={form.sports?.join(", ") || ""}
-                    onChange={(e) => setForm({ ...form, sports: e.target.value.split(",") })}
-                    placeholder="Enter sports (comma separated)"
-                  />
+                  <div className="space-y-2">
+                    {(form.sports || []).map((s, idx) => {
+                      const parsed = parseSport(s);
+                      return (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <Select
+                            value={parsed.level}
+                            onChange={(e) => {
+                              const next = [...(form.sports || [])];
+                              next[idx] = composeSport({ level: e.target.value, name: parsed.name });
+                              setForm({ ...form, sports: next.filter(Boolean) });
+                            }}
+                            className="w-56"
+                          >
+                            <option value="">Select Level (optional)</option>
+                            {SPORT_LEVEL_PREFIXES.map((p) => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                          </Select>
+                          <Select
+                            value={parsed.name}
+                            onChange={(e) => {
+                              const next = [...(form.sports || [])];
+                              next[idx] = composeSport({ level: parsed.level, name: e.target.value });
+                              setForm({ ...form, sports: next });
+                            }}
+                            className="flex-1"
+                          >
+                            <option value="">Select sport</option>
+                            {sportsList.map((opt) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </Select>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => {
+                              const next = (form.sports || []).filter((_, i) => i !== idx);
+                              setForm({ ...form, sports: next });
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      onClick={() => setForm({ ...form, sports: [...(form.sports || []), ""] })}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Sport
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Personal Status</label>
-                  <Select
-                    name="status.personal"
-                    value={form.status?.personal || "none"}
-                    onChange={(e) => setForm({ ...form, status: { ...form.status, personal: e.target.value } })}
-                  >
-                    <option value="none">None</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Sports Status</label>
-                  <Select
-                    name="status.sports"
-                    value={form.status?.sports || "none"}
-                    onChange={(e) => setForm({ ...form, status: { ...form.status, sports: e.target.value } })}
-                  >
-                    <option value="none">None</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                  </Select>
-                </div>
+
               </div>
 
               {/* Positions */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground">Positions</h3>
                 {form.positions?.map((pos, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Sport"
-                      value={pos.sport}
+                  <div key={idx} className="flex gap-2 items-center">
+                    <Select
+                      value={pos.sport || ""}
                       onChange={(e) => {
                         const newPositions = [...form.positions];
                         newPositions[idx].sport = e.target.value;
                         setForm({ ...form, positions: newPositions });
                       }}
                       className="flex-1"
-                    />
-                    <Input
-                      type="text"
-                      placeholder="Position"
-                      value={pos.position}
+                    >
+                      <option value="">Select sport</option>
+                      {(form.sports || []).filter(Boolean).map((s, i) => (
+                        <option key={`${s}-${i}`} value={s}>{s}</option>
+                      ))}
+                    </Select>
+                    <Select
+                      value={pos.position || "pending"}
                       onChange={(e) => {
                         const newPositions = [...form.positions];
                         newPositions[idx].position = e.target.value;
                         setForm({ ...form, positions: newPositions });
                       }}
-                      className="w-32"
-                    />
+                      className="w-40"
+                    >
+                      {POSITION_OPTIONS.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </Select>
                     <Button
                       type="button"
                       variant="destructive"
