@@ -48,6 +48,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import API from "../services/api";
+import { sportsList } from "../lib/options";
 
 // 🔹 Helper functions
 const fetchImageBuffer = async (url) => {
@@ -428,8 +429,8 @@ const loadImage = (url, maxWidth = 150, maxHeight = 200) =>
   });
 
 // 🔹 Main Export
-const exportToPDF = async (students, category, sport, year, manager,pdfCollege) => {
-  const batchSize = 50; // students per PDF
+const exportToPDF = async (students, category, sport, year, manager, pdfCollege) => {
+  const batchSize = 50;
   const totalBatches = Math.ceil(students.length / batchSize);
 
   for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
@@ -440,41 +441,24 @@ const exportToPDF = async (students, category, sport, year, manager,pdfCollege) 
 
     const doc = new jsPDF("landscape", "pt", "a4");
     doc.setFont("times", "normal");
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
 
-    // 🔹 Header
+    // 🔹 HEADER (only once)
     doc.setFont("times", "bold");
     doc.setFontSize(11);
-    doc.text(
-      "I.K. GUJRAL PUNJAB TECHNICAL UNIVERSITY",
-      doc.internal.pageSize.width / 2,
-      30,
-      { align: "center" }
-    );
+    doc.text("I.K. GUJRAL PUNJAB TECHNICAL UNIVERSITY", pageWidth / 2, 30, { align: "center" });
+    doc.text("Department of Physical Education & Sports", pageWidth / 2, 50, { align: "center" });
+    doc.text("Eligibility Proforma for University Tournaments", pageWidth / 2, 70, { align: "center" });
 
-    doc.setFontSize(11);
-    doc.text(
-      "Department of Physical Education & Sports",
-      doc.internal.pageSize.width / 2,
-      50,
-      { align: "center" }
-    );
-
-    doc.text(
-      "Eligibility Proforma for University Tournaments",
-      doc.internal.pageSize.width / 2,
-      70,
-      { align: "center" }
-    );
-
-    // 🔹 College Info Row
+    // College info row
+    doc.setFont("times", "normal");
     doc.setFontSize(10);
     let y = 90;
     let x = 40;
-
-const collegeText = `College: ${pdfCollege}    `;
-doc.text(collegeText, x, y);
-x += doc.getTextWidth(collegeText);
-
+    const collegeText = `College: ${pdfCollege}    `;
+    doc.text(collegeText, x, y);
+    x += doc.getTextWidth(collegeText);
 
     const addField = (label, value) => {
       doc.setFont("times", "normal");
@@ -495,167 +479,102 @@ x += doc.getTextWidth(collegeText);
     // 🔹 Table headers
     const head = [
       [
-        "Sr. No",
-        "Name",
-        "Father's Name",
-        "Date of Birth",
-        "University Reg No",
-        "Branch/Year",
-        { content: "Year of Passing", colSpan: 2 },
-        "First Admission",
-        { content: "Last Exam", colSpan: 2 },
-        { content: "Participation (Inter College)", colSpan: 2 },
-        "Inter Varsity Years",
-        "Signature",
-        "Home Address",
-        "Passport Photo",
+        "Sr. No","Name","Father's Name","Date of Birth","University Reg No","Branch/Year",
+        { content: "Year of Passing", colSpan: 2 },"First Admission",{ content: "Last Exam", colSpan: 2 },
+        { content: "Participation (Inter College)", colSpan: 2 },"Inter Varsity Years","Signature","Home Address","Passport Photo",
       ],
-      [
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "Matric 7(a)",
-        "+2 7(b)",
-        "8",
-        "Name 9(a)",
-        "Year 9(b)",
-        "Graduate 10(a)",
-        "PG 10(b)",
-        "11",
-        "12",
-        "13",
-        "14",
-      ],
+      ["1","2","3","4","5","6","Matric 7(a)","+2 7(b)","8","Name 9(a)","Year 9(b)","Graduate 10(a)","PG 10(b)","11","12","13","14"]
     ];
 
-    // 🔹 Student rows
-    const body = await Promise.all(
-      batchStudents.map(async (s, index) => {
-        const photo = await loadImage(s.passportPhotoUrl);
-        const signature = await loadImage(s.signatureUrl);
+    // 🔹 Prepare fullBody
+    const fullBody = await Promise.all(batchStudents.map(async (s, index) => {
+      const photo = await loadImage(s.passportPhotoUrl);
+      const signature = await loadImage(s.signatureUrl);
+      const safeVal = (val) => val ?? "";
+      return [
+        index + 1,
+        safeVal(s.name),
+        safeVal(s.fatherName),
+        safeVal(s.dob),
+        safeVal(s.universityRegNo),
+        safeVal(s.branchYear),
+        safeVal(s.matricYear),
+        safeVal(s.plusTwoYear),
+        safeVal(s.firstAdmissionYear),
+        safeVal(s.lastExam),
+        safeVal(s.lastExamYear),
+        safeVal(s.interCollegeGraduateCourse),
+        safeVal(s.interCollegePgCourse),
+        safeVal(s.yearsOfParticipation),
+        { content: signature ? "" : "", styles: { minCellHeight: 40 } },
+        safeVal(s.addressWithPhone),
+        { content: photo ? "" : "", styles: { minCellHeight: 50 } },
+      ];
+    }));
 
-      // helper function -> undefined/null to "", baaki values same rahengi
-    const safeVal = (val) => (val === undefined || val === null ? "" : val);
+    // 🔹 Split into pages of 5 rows each
+    const rowsPerPage = 5;
+    for (let i = 0; i < fullBody.length; i += rowsPerPage) {
+      const pageBody = fullBody.slice(i, i + rowsPerPage);
+      if (i > 0) doc.addPage(); // add new page after first
 
-    return [
-      index + 1,
-      safeVal(s.name),
-      safeVal(s.fatherName),
-      safeVal(s.dob),
-      safeVal(s.universityRegNo),
-      safeVal(s.branchYear),
-      safeVal(s.matricYear),
-      safeVal(s.plusTwoYear),
-      safeVal(s.firstAdmissionYear),
-      safeVal(s.lastExam),
-      safeVal(s.lastExamYear),
-      safeVal(s.interCollegeGraduateCourse),
-      safeVal(s.interCollegePgCourse),
-      safeVal(s.yearsOfParticipation),
-      { content: signature ? "" : "", styles: { minCellHeight: 40 } },
-      safeVal(s.addressWithPhone),
-      { content: photo ? "" : "", styles: { minCellHeight: 50 } },
-    ];
-  })
-);
+      autoTable(doc, {
+        head,
+        body: pageBody,
+startY: i === 0 ? 120 : 10,// table starts below header
+        theme: "grid",
+        styles: { font: "times", fontSize: 9, halign: "center", valign: "middle", lineColor: [0,0,0], lineWidth: 0.5 },
+        headStyles: { font: "times", fontSize: 8, textColor: 0, fillColor: [255,255,255] },
+        tableWidth: "auto",
+        columnStyles: { 11: { cellWidth: 50 } },
+         showHead: i === 0 ? 'everyPage' : 'never',
+        didDrawCell: (data) => {
+          if (data.section === "body") {
+            // Signature
+            if (data.column.index === 14) {
+              const sig = batchStudents[data.row.index + i]?.signatureUrl;
+              if (sig) {
+                doc.addImage(sig, "JPEG", data.cell.x + (data.cell.width - 40)/2, data.cell.y + (data.cell.height - 20)/2, 40, 20);
+              }
+            }
+            // Passport
+            if (data.column.index === 16) {
+              const photo = batchStudents[data.row.index + i]?.passportPhotoUrl;
+              if (photo) {
+                doc.addImage(photo, "JPEG", data.cell.x + (data.cell.width - 35)/2, data.cell.y + (data.cell.height - 45)/2, 35, 45);
+              }
+            }
+          }
+        }
+      });
 
-    autoTable(doc, {
-      head,
-      body,
-      startY: 120,
-      theme: "grid",
-      styles: {
-        font: "times",
-        fontSize: 9,
-        halign: "center",
-        valign: "middle",
-        lineColor: [0, 0, 0],
-        lineWidth: 0.5,
-      },
-      headStyles: {
-        font: "times",
-        fontSize: 8,
-        textColor: 0,
-        fillColor: [255, 255, 255],
-      },
-      tableWidth: "auto",
-        columnStyles: {
-    11: { cellWidth: 50 },  
-  },
-didDrawCell: (data) => {
-  // Sirf body ke liye run kare
-  if (data.section === "body") {
-    // Signature column (14th index)
-    if (data.column.index === 14) {
-      const sig = batchStudents[data.row.index]?.signatureUrl;
-      if (sig) {
-        const imgWidth = 40;
-        const imgHeight = 20;
-        const x = data.cell.x + (data.cell.width - imgWidth) / 2;
-        const y = data.cell.y + (data.cell.height - imgHeight) / 2;
-        doc.addImage(sig, "JPEG", x, y, imgWidth, imgHeight);
+      // 🔹 Footer only on last page
+      if (i + rowsPerPage >= fullBody.length) {
+        const certY = pageHeight - 110;
+        const colWidth = pageWidth / 3 - 40;
+        const col1X = 40;
+        const col2X = col1X + colWidth + 20;
+        const col3X = col2X + colWidth + 20;
+        const certs = [
+          "Certified that particulars given above have been verified and checked.",
+          "Certified that the players are not employed anywhere on full time basis.",
+          "Certified that the eligibility of the students listed herein has been verified and they are eligible.",
+        ];
+        certs.forEach((c, j) => {
+          const x = [col1X, col2X, col3X][j];
+          doc.text(doc.splitTextToSize(c, colWidth), x, certY);
+        });
+
+        const signY = pageHeight - 50;
+        doc.text("Date: ___________", col1X, signY);
+        doc.text("Signature of DPE/Lecturer Physical Edu.", col2X, signY);
+        doc.setFont("times", "bold");
+        doc.text("PRINCIPAL", col3X, signY);
+        doc.setFont("times", "normal");
+        doc.text("(Seal of College)", col3X, signY + 15);
       }
     }
 
-    // Passport photo column (16th index)
-    if (data.column.index === 16) {
-      const photo = batchStudents[data.row.index]?.passportPhotoUrl;
-      if (photo) {
-        const imgWidth = 35;
-        const imgHeight = 45;
-        const x = data.cell.x + (data.cell.width - imgWidth) / 2;
-        const y = data.cell.y + (data.cell.height - imgHeight) / 2;
-        doc.addImage(photo, "JPEG", x, y, imgWidth, imgHeight);
-      }
-    }
-  }
-}
-,
-    });
-
-// 🔹 Footer (certifications + signatures)
-const pageHeight = doc.internal.pageSize.height;
-const pageWidth = doc.internal.pageSize.width;
-let certY = pageHeight - 110; // upar thoda jagah
-doc.setFont("times", "normal");
-doc.setFontSize(10);
-
-// Teen columns ki width
-const colWidth = pageWidth / 3 - 40;
-const col1X = 40;
-const col2X = col1X + colWidth + 20;
-const col3X = col2X + colWidth + 20;
-
-const certs = [
-  "Certified that particulars given above have been verified and checked.",
-  "Certified that the players are not employed anywhere on full time basis.",
-  "Certified that the eligibility of the students listed herein has been verified and they are eligible.",
-];
-
-// Wrap text aur draw karo
-certs.forEach((c, i) => {
-  const x = [col1X, col2X, col3X][i];
-  const lines = doc.splitTextToSize(c, colWidth);
-  doc.text(lines, x, certY);
-});
-
-// 🔹 Signatures line
-let signY = pageHeight - 50;
-doc.setFont("times", "normal");
-doc.text("Date: ___________", col1X, signY);
-
-doc.text("Signature of DPE/Lecturer Physical Edu.", col2X, signY);
-
-doc.setFont("times", "bold");
-doc.text("PRINCIPAL", col3X, signY);
-doc.setFont("times", "normal");
-doc.text("(Seal of College)", col3X, signY + 15);
-
-
-    // Save per batch
     doc.save(`Eligibility_Form_Part${batchIndex + 1}.pdf`);
   }
 };
@@ -931,7 +850,13 @@ const StudentExport = () => {
                   placeholder="Search by activity..."
                   value={filterActivity}
                   onChange={(e) => setFilterActivity(e.target.value)}
+                  list="sports-options"
                 />
+                <datalist id="sports-options">
+                  {sportsList.map((sport) => (
+                    <option key={sport} value={sport} />
+                  ))}
+                </datalist>
               </div>
             </div>
           </CardContent>
@@ -1098,13 +1023,15 @@ const StudentExport = () => {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Sport:</label>
-                  <Input
-                    type="text"
+                  <Select
                     value={pdfSport}
                     onChange={(e) => setPdfSport(e.target.value)}
-                    placeholder="e.g., Badminton"
-                    className="bg-background text-foreground border-border placeholder:text-muted-foreground"
-                  />
+                    className="bg-background text-foreground border-border"
+                  >
+                    {sportsList.map((sport) => (
+                      <option key={sport} value={sport}>{sport}</option>
+                    ))}
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
