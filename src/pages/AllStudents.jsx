@@ -98,7 +98,7 @@ const AllStudents = () => {
   );
 
   const pendingStudents = filteredStudents.filter(student =>
-    student.status?.personal === "pending"
+    student.status?.personal === "none"
   );
 
   const approvedStudents = filteredStudents.filter(student =>
