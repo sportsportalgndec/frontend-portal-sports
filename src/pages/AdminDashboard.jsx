@@ -157,7 +157,7 @@ const genderData = React.useMemo(() => {
       const sessionMap = {};
       const levels = { international: {"1st":0,"2nd":0,"3rd":0}, national: {"1st":0,"2nd":0,"3rd":0},ptu:{"1st":0,"2nd":0,"3rd":0} };
 
-      students.forEach(st => {
+      students.filter(st => st.status?.personal === "approved").forEach(st => {
         const sessionName = st.session?.session || 'Unknown';
         if (!sessionMap[sessionName]) sessionMap[sessionName] = {"1st":0,"2nd":0,"3rd":0, participated:0};
         (st.positions || []).forEach(pos => {
@@ -195,7 +195,7 @@ const genderData = React.useMemo(() => {
       const captains = captainsResponse.data || [];
 
       // 🔹 Filter students with pending positions
-      const pendingStudents = students.filter(student => {
+      const pendingStudents = students.filter(st => st.status?.personal === "approved").filter(student => {
         // null/undefined/empty array => pending
         if (!student.positions || !Array.isArray(student.positions) || student.positions.length === 0) return true;
   
@@ -206,7 +206,7 @@ const genderData = React.useMemo(() => {
       });
 
       // 🔹 Filter captains with pending positions
-      const pendingCaptains = captains.filter(captain =>
+      const pendingCaptains = captains.filter(captain => captain.teamStatus === "approved").filter(captain =>
         !captain.position || captain.position === "pending" || captain.position === ""
       );
 
@@ -482,10 +482,10 @@ return (
                       <Users className="w-3.5 h-3.5 text-primary mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-foreground text-sm truncate">
-                          Team: {team.name}
+                          Captain: {team.members[0]?.name}
                         </p>
                         <p className="text-muted-foreground text-xs mt-1">
-                          Sport: {team.sport}
+                          Sport: {team.members[0]?.sport}
                         </p>
                       </div>
                     </div>

@@ -175,6 +175,7 @@ const fetchCaptainHistory = async (urn,sessionId) => {
         phone: e.target.phone.value,
         sessionId: selectedSession,
       });
+      setActiveSection('team');
       const captain = await fetchCaptainInfo(selectedSession);
       setCaptainInfo(captain);
       decideStep(captain, teamInfo);
@@ -213,6 +214,7 @@ const fetchCaptainHistory = async (urn,sessionId) => {
       form.reset();
 
       if (updatedTeam.members.length >= captainInfo.teamMemberCount) {
+        setActiveSection('approval');
         setStep('done');
       }
     } catch (err) {
@@ -284,6 +286,7 @@ const generateCertificatesPDF = async () => {
   }
 
   const sessionExpired = activeSession && !activeSession.isActive;
+  const teamComplete = (teamInfo?.members?.length || 0) >= (captainInfo?.teamMemberCount || Infinity);
 
   // Navigation items
   const navigationItems = [
@@ -549,7 +552,7 @@ const generateCertificatesPDF = async () => {
                             placeholder="Enter your phone number"
                             defaultValue={captainInfo.phone || ''}
                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                            disabled={sessionExpired}
+                            disabled={sessionExpired || teamComplete}
                             required
                           />
                         </div>
@@ -567,7 +570,7 @@ const generateCertificatesPDF = async () => {
                         </div>
                       )}
                       
-                      {!sessionExpired && (
+                      {!sessionExpired && !teamComplete && (
                         <div className="pt-4">
                           <button 
                             type="submit"
@@ -746,11 +749,25 @@ const generateCertificatesPDF = async () => {
                           Team Complete!
                         </h4>
                         <p className="text-gray-600 dark:text-gray-400 mb-6">
-                          All {captainInfo?.teamMemberCount} team members have been added. Your team is ready for submission.
+                          All {captainInfo?.teamMemberCount} team members have been added.
                         </p>
                         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                           <p className="text-green-800 dark:text-green-300 font-medium">
-                            ✅ Team is ready for approval
+                              {/* Determine status */}
+        {(() => {
+          const status = teamInfo?.status?.toLowerCase() || 'pending';
+          const statusColor =
+            status === 'approved'
+              ? 'text-green-800 dark:text-green-300'
+              : 'text-orange-800 dark:text-orange-300';
+          const statusText =
+            status === 'approved' ? '✅ Team is approved' : '✅ Team is gone for approval';
+          return (
+            <p className={`${statusColor} font-medium`}>
+              {statusText}
+            </p>
+          );
+        })()}
                           </p>
                         </div>
                       </div>
@@ -874,7 +891,7 @@ const generateCertificatesPDF = async () => {
                                     {m.position === 1 ? "🥇 1st" 
                                       : m.position === 2 ? "🥈 2nd" 
                                       : m.position === 3 ? "🥉 3rd" 
-                                      : m.position || 'N/A'}
+                                      : m.position || 'pending'}
                                   </td>
                                 </tr>
                               ))}
@@ -933,7 +950,7 @@ const generateCertificatesPDF = async () => {
                                       <p className="font-medium text-gray-700 dark:text-gray-300">{c.sport}</p>
                                       <p className="text-sm text-gray-600 dark:text-gray-400">Session: {c.session?.session}</p>
                                       <p className="text-sm text-gray-600 dark:text-gray-400">Team Size: {c.teamMemberCount || 0}</p>
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">Position: {c.position || "N/A"}</p>
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">Position: {c.position || "pending"}</p>
                                     </div>
                                   ))}
                                 </div>

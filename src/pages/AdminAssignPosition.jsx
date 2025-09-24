@@ -4,10 +4,10 @@ import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
-import { 
-  Target, 
-  Users, 
-  CheckCircle, 
+import {
+  Target,
+  Users,
+  CheckCircle,
   AlertCircle,
   RefreshCw,
   Trophy,
@@ -16,18 +16,9 @@ import {
   Search,
   Filter,
   CheckSquare,
-  Square
+  Square,
 } from "lucide-react";
 import API from "../services/api";
-
-const predefinedSports = [
-  "Basketball",
-  "Football",
-  "Volleyball",
-  "Badminton",
-  "Cricket",
-  "Athletics"
-];
 
 const positionsList = ["1st", "2nd", "3rd", "Participated"];
 
@@ -43,21 +34,40 @@ const AdminAssignPosition = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // ✅ Fetch only pending students
   useEffect(() => {
     const fetchStudents = async () => {
       try {
         setLoading(true);
         setError(null);
+  
         const res = await API.get("/admin/students");
-
-        // Remove fully assigned students
-        const pendingStudents = res.data.filter(student => {
-          const studentSports = student.sports || [];
-          const assignedSports = student.positions?.map(p => p.sport) || [];
-          return studentSports.some(sport => !assignedSports.includes(sport));
-        });
-
-        setStudents(pendingStudents);
+  
+        const filteredStudents = res.data
+          .map((student) => {
+            // ✅ Approved sportsDetails
+            const approvedSports = (student.sportsDetails || []).filter(
+              (sport) => sport.status === "approved"
+            );
+  
+            // ✅ Pending positions
+            const pendingPositions = (student.positions || []).filter(
+              (pos) => pos.position === "pending"
+            );
+  
+            // ✅ Sirf wahi students rakho jinke dono me data ho
+            if (approvedSports.length > 0 && pendingPositions.length > 0) {
+              return {
+                ...student,
+                sportsDetails: approvedSports,
+                positions: pendingPositions,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+  
+        setStudents(filteredStudents);
       } catch (err) {
         console.error("Error fetching students", err);
         setError("Failed to fetch students");
@@ -65,16 +75,19 @@ const AdminAssignPosition = () => {
         setLoading(false);
       }
     };
+  
     fetchStudents();
   }, []);
+  
+  
 
   const handlePositionChange = (studentId, sportName, value) => {
-    setPositionData(prev => ({
+    setPositionData((prev) => ({
       ...prev,
       [studentId]: {
         ...(prev[studentId] || {}),
-        [sportName]: value
-      }
+        [sportName]: value,
+      },
     }));
   };
 
@@ -88,30 +101,30 @@ const AdminAssignPosition = () => {
     try {
       await API.put(`/admin/students/${studentId}/assign-sport-position`, {
         sportName,
-        position
+        position,
       });
       setMessage(`✅ ${sportName} position assigned successfully!`);
 
       // Reset select
-      setPositionData(prev => ({
+      setPositionData((prev) => ({
         ...prev,
-        [studentId]: { ...prev[studentId], [sportName]: "" }
+        [studentId]: { ...prev[studentId], [sportName]: "" },
       }));
 
-      // Update students locally and remove fully assigned
-      setStudents(prev => {
-        const updated = prev.map(student => {
-          if (student._id === studentId) {
-            const newPositions = [...(student.positions || []), { sport: sportName, position }];
-            return { ...student, positions: newPositions };
-          }
-          return student;
-        });
-
-        return updated.filter(student => 
-          (student.sports || []).some(sport => !student.positions?.some(p => p.sport === sport))
-        );
-      });
+      // Update students list (remove pending if assigned)
+      setStudents((prev) =>
+        prev
+          .map((student) => {
+            if (student._id === studentId) {
+              const newPositions = student.positions.filter(
+                (p) => p.sport !== sportName
+              );
+              return { ...student, positions: newPositions };
+            }
+            return student;
+          })
+          .filter((student) => student.positions.length > 0)
+      );
     } catch (err) {
       console.error(err);
       setMessage("❌ Failed to assign position");
@@ -127,14 +140,16 @@ const AdminAssignPosition = () => {
     try {
       const assignments = [];
       for (const studentId of selectedStudents) {
-        const student = students.find(s => s._id === studentId);
-        if (student && student.sports.includes(bulkSport)) {
-          const isAlreadyAssigned = student.positions?.some(p => p.sport === bulkSport);
-          if (!isAlreadyAssigned || bulkPosition === "Participated") {
+        const student = students.find((s) => s._id === studentId);
+        if (student) {
+          const isPending = student.positions?.some(
+            (p) => p.sport === bulkSport && p.position === "pending"
+          );
+          if (isPending) {
             assignments.push(
               API.put(`/admin/students/${studentId}/assign-sport-position`, {
                 sportName: bulkSport,
-                position: bulkPosition
+                position: bulkPosition,
               })
             );
           }
@@ -142,22 +157,29 @@ const AdminAssignPosition = () => {
       }
 
       await Promise.all(assignments);
-      setMessage(`✅ Position ${bulkPosition} for ${bulkSport} assigned to ${assignments.length} students!`);
+      setMessage(
+        `✅ Position ${bulkPosition} for ${bulkSport} assigned to ${assignments.length} students!`
+      );
 
       // Update students locally
-      setStudents(prev => {
-        const updated = prev.map(student => {
-          if (selectedStudents.has(student._id) && student.sports.includes(bulkSport)) {
-            const newPositions = [...(student.positions || []), { sport: bulkSport, position: bulkPosition }];
-            return { ...student, positions: newPositions };
-          }
-          return student;
-        });
-
-        return updated.filter(student => 
-          (student.sports || []).some(sport => !student.positions?.some(p => p.sport === sport))
-        );
-      });
+      setStudents((prev) =>
+        prev
+          .map((student) => {
+            if (
+              selectedStudents.has(student._id) &&
+              student.positions.some(
+                (p) => p.sport === bulkSport && p.position === "pending"
+              )
+            ) {
+              const newPositions = student.positions.filter(
+                (p) => p.sport !== bulkSport
+              );
+              return { ...student, positions: newPositions };
+            }
+            return student;
+          })
+          .filter((student) => student.positions.length > 0)
+      );
 
       setSelectedStudents(new Set());
       setBulkPosition("");
@@ -179,19 +201,39 @@ const AdminAssignPosition = () => {
     if (selectedStudents.size === filteredStudents.length) {
       setSelectedStudents(new Set());
     } else {
-      setSelectedStudents(new Set(filteredStudents.map(s => s._id)));
+      setSelectedStudents(new Set(filteredStudents.map((s) => s._id)));
     }
   };
 
-  const filteredStudents = students.filter(student => {
+  const filteredStudents = students.filter((student) => {
     const matchesSport = sportFilter
-      ? (student.sports || []).some(s => s.toLowerCase().includes(sportFilter.toLowerCase()))
+      ? student.positions.some((p) =>
+          p.sport.toLowerCase().includes(sportFilter.toLowerCase())
+        )
       : true;
+  
     const matchesName = nameFilter
       ? student.name?.toLowerCase().includes(nameFilter.toLowerCase())
       : true;
-    return matchesSport && matchesName;
+  
+    const matchesBulkSport = bulkSport
+      ? student.positions.some(p => p.sport === bulkSport && p.position === "pending")
+      : true;
+  
+    return matchesSport && matchesName && matchesBulkSport;
   });
+  
+
+  // ✅ Real-time available pending sports
+  const availablePendingSports = [
+    ...new Set(
+      students.flatMap((student) =>
+        (student.positions || [])
+          .filter((pos) => pos.position === "pending")
+          .map((pos) => pos.sport)
+      )
+    ),
+  ];
 
   if (loading) {
     return (
@@ -230,8 +272,12 @@ const AdminAssignPosition = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Assign Sport Positions</h1>
-          <p className="text-muted-foreground mt-1">Manage pending position assignments for students</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Assign Sport Positions
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Manage pending position assignments for students
+          </p>
         </div>
         <Button onClick={() => window.location.reload()} variant="outline">
           <RefreshCw className="w-4 h-4 mr-2" />
@@ -244,8 +290,8 @@ const AdminAssignPosition = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className={`p-4 rounded-lg flex items-center gap-2 ${
-            message.includes("✅") 
-              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800" 
+            message.includes("✅")
+              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800"
               : "bg-destructive/10 text-destructive border border-destructive/20"
           }`}
         >
@@ -267,49 +313,65 @@ const AdminAssignPosition = () => {
       >
         <Card>
           <CardContent className="p-4">
-            <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
               <Filter className="w-4 h-4" /> Filter by Sport
             </label>
             <Input
               type="text"
               placeholder="e.g. Basketball, Football..."
               value={sportFilter}
-              onChange={e => setSportFilter(e.target.value)}
+              onChange={(e) => setSportFilter(e.target.value)}
             />
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
               <Search className="w-4 h-4" /> Filter by Name
             </label>
             <Input
               type="text"
               placeholder="Search student name..."
               value={nameFilter}
-              onChange={e => setNameFilter(e.target.value)}
+              onChange={(e) => setNameFilter(e.target.value)}
             />
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
               <Target className="w-4 h-4" /> Bulk Assign Position
             </label>
             <div className="space-y-2">
-              <Select value={bulkSport} onChange={e => setBulkSport(e.target.value)}>
+              <Select
+                value={bulkSport}
+                onChange={(e) => setBulkSport(e.target.value)}
+              >
                 <option value="">Select Sport</option>
-                {predefinedSports.map(s => <option key={s} value={s}>{s}</option>)}
+                {availablePendingSports.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
               </Select>
-              <Select value={bulkPosition} onChange={e => setBulkPosition(e.target.value)}>
+              <Select
+                value={bulkPosition}
+                onChange={(e) => setBulkPosition(e.target.value)}
+              >
                 <option value="">Select Position</option>
-                {positionsList.map(p => <option key={p} value={p}>{p}</option>)}
+                {positionsList.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
               </Select>
               <Button
                 onClick={handleBulkAssign}
-                disabled={!bulkPosition || !bulkSport || selectedStudents.size === 0}
+                disabled={
+                  !bulkPosition || !bulkSport || selectedStudents.size === 0
+                }
                 className="w-full"
               >
                 Assign to Selected
@@ -327,10 +389,19 @@ const AdminAssignPosition = () => {
                 ) : (
                   <Square className="w-5 h-5 text-muted-foreground" />
                 )}
-                <span className="font-semibold text-foreground">{selectedStudents.size} selected</span>
+                <span className="font-semibold text-foreground">
+                  {selectedStudents.size} selected
+                </span>
               </div>
-              <Button onClick={toggleSelectAll} variant="outline" size="sm" className="w-full">
-                {selectedStudents.size === filteredStudents.length ? "Deselect All" : "Select All"}
+              <Button
+                onClick={toggleSelectAll}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                {selectedStudents.size === filteredStudents.length
+                  ? "Deselect All"
+                  : "Select All"}
               </Button>
             </div>
           </CardContent>
@@ -347,16 +418,20 @@ const AdminAssignPosition = () => {
           <Card>
             <CardContent className="p-12 text-center">
               <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Pending Students</h3>
-              <p className="text-muted-foreground">All position assignments are complete!</p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                No Pending Students
+              </h3>
+              <p className="text-muted-foreground">
+                All position assignments are complete!
+              </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredStudents.map((student, index) => {
-              const pendingSports = (student.sports || []).filter(s => 
-                !student.positions?.some(p => p.sport === s)
-              );
+              const pendingSports = (student.positions || [])
+                .filter((p) => p.position === "pending")
+                .map((p) => p.sport);
 
               return (
                 <motion.div
@@ -365,8 +440,12 @@ const AdminAssignPosition = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   className={`border rounded-lg overflow-hidden ${
-                    pendingSports.length === 0 ? "border-green-200" : "border-yellow-200"
-                  } ${selectedStudents.has(student._id) ? "ring-2 ring-primary" : ""}`}
+                    pendingSports.length === 0
+                      ? "border-green-200"
+                      : "border-yellow-200"
+                  } ${
+                    selectedStudents.has(student._id) ? "ring-2 ring-primary" : ""
+                  }`}
                 >
                   <Card className="h-full">
                     <CardContent className="p-5">
@@ -380,55 +459,90 @@ const AdminAssignPosition = () => {
                           />
                           <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border">
                             <img
-                              src={student.photo || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
+                              src={
+                                student.photo ||
+                                "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                              }
                               alt={student.name}
                               className="w-full h-full object-cover"
                             />
                           </div>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          pendingSports.length === 0 
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" 
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                        }`}>
-                          {pendingSports.length === 0 ? "All Assigned" : `${pendingSports.length} Pending`}
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            pendingSports.length === 0
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                          }`}
+                        >
+                          {pendingSports.length === 0
+                            ? "All Assigned"
+                            : `${pendingSports.length} Pending`}
                         </span>
                       </div>
 
                       <div className="mb-4">
-                        <h3 className="text-lg font-semibold text-foreground mb-1">{student.name}</h3>
+                        <h3 className="text-lg font-semibold text-foreground mb-1">
+                          {student.name}
+                        </h3>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <GraduationCap className="w-4 h-4" />
                           <span>URN: {student.urn || "-"}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <User className="w-4 h-4" />
-                          <span>{student.branch || "-"} • Year {student.year || "-"}</span>
+                          <span>
+                            {student.branch || "-"} • Year {student.year || "-"}
+                          </span>
                         </div>
                       </div>
 
                       {pendingSports.length > 0 ? (
                         <div className="space-y-3">
-                          <h4 className="text-sm font-medium text-foreground">Pending Assignments:</h4>
+                          <h4 className="text-sm font-medium text-foreground">
+                            Pending Assignments:
+                          </h4>
                           {pendingSports.map((sport, idx) => {
-                            const currentSelection = positionData[student._id]?.[sport] || "";
+                            const currentSelection =
+                              positionData[student._id]?.[sport] || "";
 
                             return (
-                              <div key={idx} className="flex items-center justify-between bg-muted p-3 rounded-lg">
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between bg-muted p-3 rounded-lg"
+                              >
                                 <div className="flex items-center gap-2">
                                   <Trophy className="w-4 h-4 text-primary" />
-                                  <span className="font-medium text-foreground">{sport}</span>
+                                  <span className="font-medium text-foreground">
+                                    {sport}
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Select
                                     value={currentSelection}
-                                    onChange={e => handlePositionChange(student._id, sport, e.target.value)}
+                                    onChange={(e) =>
+                                      handlePositionChange(
+                                        student._id,
+                                        sport,
+                                        e.target.value
+                                      )
+                                    }
                                     className="w-28"
                                   >
                                     <option value="">Position</option>
-                                    {positionsList.map(p => <option key={p} value={p}>{p}</option>)}
+                                    {positionsList.map((p) => (
+                                      <option key={p} value={p}>
+                                        {p}
+                                      </option>
+                                    ))}
                                   </Select>
-                                  <Button onClick={() => handleAssign(student._id, sport)} size="sm" disabled={!currentSelection}>
+                                  <Button
+                                    onClick={() =>
+                                      handleAssign(student._id, sport)
+                                    }
+                                    size="sm"
+                                    disabled={!currentSelection}
+                                  >
                                     Assign
                                   </Button>
                                 </div>
