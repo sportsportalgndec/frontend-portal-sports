@@ -84,8 +84,13 @@ const AllStudents = () => {
       const sessionData = res.data || [];
       setSessions(sessionData);
       
-      // Don't set a default session - let user choose or show all
-      // This allows users to see all students across sessions by default
+      // Set the first active session as default, or first session if no active session
+      const activeSession = sessionData.find(session => session.isActive);
+      if (activeSession) {
+        setSelectedSession(activeSession._id);
+      } else if (sessionData.length > 0) {
+        setSelectedSession(sessionData[0]._id);
+      }
     } catch (err) {
       console.error("Failed to fetch sessions:", err);
     }

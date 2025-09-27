@@ -369,6 +369,14 @@ const handleUpdate = async () => {
                     <label className="text-sm font-medium text-muted-foreground">Years of Participation</label>
                     <p className="text-foreground">{student.yearsOfParticipation || "N/A"}</p>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Inter College Graduate Course</label>
+                    <p className="text-foreground">{student.interCollegeGraduateCourse}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Inter College PG Course</label>
+                    <p className="text-foreground">{student.interCollegePgCourse}</p>
+                  </div>
                 </div>
               </div>
 
@@ -405,9 +413,32 @@ const handleUpdate = async () => {
                   <p className="text-foreground">{student.status?.personal || "N/A"}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Sports Status</label>
-                  <p className="text-foreground">{student.status?.sports || "N/A"}</p>
-                </div>
+  <label className="text-sm font-medium text-muted-foreground">Sports Status</label>
+  {student.sportsDetails && student.sportsDetails.length > 0 ? (
+    <ul className="list-disc ml-5 space-y-1">
+      {student.sportsDetails.map((detail) => (
+        <li key={detail._id} className="text-foreground">
+          {detail.sport} —{" "}
+          <span
+            className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium
+              ${
+                detail.status === "approved"
+                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                  : detail.status === "pending"
+                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                  : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+              }`}
+          >
+            {detail.status.charAt(0).toUpperCase() + detail.status.slice(1)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p className="text-foreground">N/A</p>
+  )}
+</div>
+
               </div>
             </CardContent>
           </Card>
@@ -578,15 +609,78 @@ const handleUpdate = async () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Years of Participation</label>
-                  <Input
-                    name="yearsOfParticipation"
-                    type="number"
-                    value={form.yearsOfParticipation || ""}
-                    onChange={handleChange}
-                    placeholder="Enter participation years"
-                  />
-                </div>
+  <label className="text-sm font-medium text-foreground">Years of Participation</label>
+  <select
+    name="yearsOfParticipation"
+    value={form.yearsOfParticipation || ""}
+    onChange={handleChange}
+    className="w-full px-4 py-3 border  rounded-lg
+               bg-white dark:bg-black text-gray-900 dark:text-white
+               focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
+               transition-colors"
+  >
+    <option value="">Select years</option>
+    {[...Array(11)].map((_, i) => (
+      <option
+        key={i}
+        value={i}
+        className="bg-white dark:bg-black text-gray-900 dark:text-white"
+      >
+        {i} {i === 1 ? "year" : "years"}
+      </option>
+    ))}
+  </select>
+</div>
+
+<div className="space-y-2">
+  <label className="text-sm font-medium text-foreground">Inter College Graduate Course</label>
+  <select
+    name="interCollegeGraduateCourse"
+    value={form.interCollegeGraduateCourse}
+    onChange={handleChange}
+    className="w-full px-4 py-3 border  rounded-lg
+               bg-white dark:bg-black text-gray-900 dark:text-white
+               focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
+               transition-colors"
+  >
+    <option value="">Select years</option>
+    {[...Array(11)].map((_, i) => (
+      <option
+        key={i}
+        value={i}
+        className="bg-white dark:bg-black text-gray-900 dark:text-white"
+      >
+        {i} {i === 1 ? "year" : "years"}
+      </option>
+    ))}
+  </select>
+</div>
+
+<div className="space-y-2">
+  <label className="text-sm font-medium text-foreground">Inter College PG Course</label>
+  <select
+    name="interCollegePgCourse"
+    value={form.interCollegePgCourse}
+    onChange={handleChange}
+    className="w-full px-4 py-3 border rounded-lg
+               bg-white dark:bg-black text-gray-900 dark:text-white
+               focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
+               transition-colors"
+  >
+    <option value="">Select years</option>
+    {[...Array(11)].map((_, i) => (
+      <option
+        key={i}
+        value={i}
+        className="bg-white dark:bg-black text-gray-900 dark:text-white"
+      >
+        {i} {i === 1 ? "year" : "years"}
+      </option>
+    ))}
+  </select>
+</div>
+
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Sports</label>
                   <div className="space-y-2">

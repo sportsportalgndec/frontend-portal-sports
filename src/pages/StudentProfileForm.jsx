@@ -380,16 +380,22 @@ const handleSubmitPersonalForApproval = async () => {
 
 
   // Fixed sport handlers - properly manage the sports array
+  // Modified to allow only one sport at a time
   const handleAddPtuIntercollegeSport = () => {
     if (!ptuIntercollegeSport.trim()) return;
     const prefixed = `PTU Intercollege ${ptuIntercollegeSport.trim()}`;
     if (!formData.sports.includes(prefixed)) {
       setFormData((prev) => ({ 
         ...prev, 
-        sports: [...prev.sports, prefixed] 
+        sports: [prefixed] // Replace all sports with just this one
       }));
     }
+    // Clear all other sport selections
     setPtuIntercollegeSport("");
+    setNationalLevelSport("");
+    setInternationalLevelSport("");
+    setStateLevelSport("");
+    setInterUniversityLevelSport("");
   };
 
   const handleAddNationalLevelSport = () => {
@@ -398,10 +404,15 @@ const handleSubmitPersonalForApproval = async () => {
     if (!formData.sports.includes(prefixed)) {
       setFormData((prev) => ({ 
         ...prev, 
-        sports: [...prev.sports, prefixed] 
+        sports: [prefixed] // Replace all sports with just this one
       }));
     }
+    // Clear all other sport selections
+    setPtuIntercollegeSport("");
     setNationalLevelSport("");
+    setInternationalLevelSport("");
+    setStateLevelSport("");
+    setInterUniversityLevelSport("");
   };
 
   const handleAddInternationalLevelSport = () => {
@@ -410,10 +421,15 @@ const handleSubmitPersonalForApproval = async () => {
     if (!formData.sports.includes(prefixed)) {
       setFormData((prev) => ({ 
         ...prev, 
-        sports: [...prev.sports, prefixed] 
+        sports: [prefixed] // Replace all sports with just this one
       }));
     }
+    // Clear all other sport selections
+    setPtuIntercollegeSport("");
+    setNationalLevelSport("");
     setInternationalLevelSport("");
+    setStateLevelSport("");
+    setInterUniversityLevelSport("");
   };
 
   // State Level Sports
@@ -423,10 +439,15 @@ const handleSubmitPersonalForApproval = async () => {
     if (!formData.sports.includes(prefixed)) {
       setFormData((prev) => ({
         ...prev,
-        sports: [...prev.sports, prefixed]
+        sports: [prefixed] // Replace all sports with just this one
       }));
     }
+    // Clear all other sport selections
+    setPtuIntercollegeSport("");
+    setNationalLevelSport("");
+    setInternationalLevelSport("");
     setStateLevelSport("");
+    setInterUniversityLevelSport("");
   };
 
   // Inter-University Level Sports
@@ -436,9 +457,14 @@ const handleSubmitPersonalForApproval = async () => {
     if (!formData.sports.includes(prefixed)) {
       setFormData((prev) => ({
         ...prev,
-        sports: [...prev.sports, prefixed]
+        sports: [prefixed] // Replace all sports with just this one
       }));
     }
+    // Clear all other sport selections
+    setPtuIntercollegeSport("");
+    setNationalLevelSport("");
+    setInternationalLevelSport("");
+    setStateLevelSport("");
     setInterUniversityLevelSport("");
   };
 

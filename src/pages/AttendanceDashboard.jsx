@@ -59,6 +59,8 @@ const AttendanceDashboard = ({ defaultSport }) => {
   const [selectedSession, setSelectedSession] = useState("");
 
   const courses = [
+    "B.Voc Interior Design",
+    "B.Com Entrepreneurship",
     "B.Tech.(Civil Engineering)",
     "B.Tech.(Computer Science and Engineering)",
     "B.Tech.(Electrical Engineering)",
@@ -78,7 +80,8 @@ const AttendanceDashboard = ({ defaultSport }) => {
     "BCA (Bachelor of Computer Applications)",
     "BBA (Bachelor of Business Administration)",
     "B.Voc.(Interior Design)",
-    "B.Com.(Entrepreneurship)"
+    "B.Com.(Entrepreneurship)",
+    "B.Arch (Bachelor of Architecture)"
   ];
   const years = [1, 2, 3, 4, 5];
 

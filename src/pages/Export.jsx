@@ -822,10 +822,6 @@ const StudentExport = () => {
         className="flex items-center justify-between"
       >
         <div className="flex items-center gap-4">
-          <Button onClick={() => navigate("/admin")} variant="outline" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Export Students</h1>
             <p className="text-muted-foreground mt-1">Export student data in Excel or Word format</p>
