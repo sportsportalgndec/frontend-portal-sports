@@ -17,6 +17,7 @@ import {
   Filter,
   CheckSquare,
   Square,
+  Calendar,
 } from "lucide-react";
 import API from "../services/api";
 
@@ -33,6 +34,24 @@ const AdminAssignPosition = () => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState("");
+
+  const fetchSessions = async () => {
+    try {
+      const res = await API.get("/session", { withCredentials: true });
+      const sessionData = res.data || [];
+      setSessions(sessionData);
+      
+      // Set default session to active session
+      const activeSession = sessionData.find(s => s.isActive);
+      if (activeSession) {
+        setSelectedSession(activeSession._id);
+      }
+    } catch (err) {
+      console.error("Failed to fetch sessions:", err);
+    }
+  };
 
   // ✅ Fetch only pending students
   useEffect(() => {
@@ -77,6 +96,10 @@ const AdminAssignPosition = () => {
     };
   
     fetchStudents();
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
   }, []);
   
   
@@ -206,6 +229,9 @@ const AdminAssignPosition = () => {
   };
 
   const filteredStudents = students.filter((student) => {
+    // Session filter
+    const sessionMatch = !selectedSession || student.session?._id === selectedSession;
+    
     const matchesSport = sportFilter
       ? student.positions.some((p) =>
           p.sport.toLowerCase().includes(sportFilter.toLowerCase())
@@ -220,7 +246,7 @@ const AdminAssignPosition = () => {
       ? student.positions.some(p => p.sport === bulkSport && p.position === "pending")
       : true;
   
-    return matchesSport && matchesName && matchesBulkSport;
+    return sessionMatch && matchesSport && matchesName && matchesBulkSport;
   });
   
 
@@ -304,11 +330,39 @@ const AdminAssignPosition = () => {
         </motion.div>
       )}
 
+      {/* Session Selector */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Calendar className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">Filter by Session</h3>
+            </div>
+            <Select
+              value={selectedSession}
+              onChange={(e) => setSelectedSession(e.target.value)}
+              className="w-full"
+            >
+              <option value="">All Sessions</option>
+              {sessions.map((session) => (
+                <option key={session._id} value={session._id}>
+                  {session.session} {session.isActive ? "(Active)" : ""}
+                </option>
+              ))}
+            </Select>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Filters and Bulk */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.2 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
       >
         <Card>
@@ -412,7 +466,7 @@ const AdminAssignPosition = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+        transition={{ delay: 0.3 }}
       >
         {filteredStudents.length === 0 ? (
           <Card>

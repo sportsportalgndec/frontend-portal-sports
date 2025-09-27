@@ -195,7 +195,7 @@ const genderData = React.useMemo(() => {
       const captains = captainsResponse.data || [];
 
       // 🔹 Filter students with pending positions
-      const pendingStudents = students.filter(st => st.status?.personal === "approved").filter(student => {
+      const pendingStudents = students.filter(st => st.status?.personal === "approved").filter(st => Array.isArray(st.sports) && st.sports.length > 0).filter(student => {
         // null/undefined/empty array => pending
         if (!student.positions || !Array.isArray(student.positions) || student.positions.length === 0) return true;
   

@@ -3,13 +3,16 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Select } from "../components/ui/select";
 import { 
   Users, 
   Eye, 
   RefreshCw,
   AlertCircle,
   Search,
-  Trophy
+  Trophy,
+  Calendar,
+  CheckCircle
 } from "lucide-react";
 import API from "../services/api";
 
@@ -72,12 +75,29 @@ const AllStudents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sessions, setSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState("");
+
+  const fetchSessions = async () => {
+    try {
+      const res = await API.get("/session", { withCredentials: true });
+      const sessionData = res.data || [];
+      setSessions(sessionData);
+      
+      // Don't set a default session - let user choose or show all
+      // This allows users to see all students across sessions by default
+    } catch (err) {
+      console.error("Failed to fetch sessions:", err);
+    }
+  };
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await API.get("/admin/students", { withCredentials: true });
+      const res = await API.get("/admin/students", { 
+        withCredentials: true
+      });
       setStudents(res.data);
     } catch (err) {
       console.error(err);
@@ -88,14 +108,24 @@ const AllStudents = () => {
   };
 
   useEffect(() => {
+    fetchSessions();
+  }, []);
+
+  useEffect(() => {
     fetchStudents();
   }, []);
 
-  const filteredStudents = students.filter(student =>
-    student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.urn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.branch?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = students.filter(student => {
+    // Session filter
+    const sessionMatch = !selectedSession || student.session?._id === selectedSession;
+    
+    // Search filter
+    const searchMatch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.urn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.branch?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return sessionMatch && searchMatch;
+  });
 
   const pendingStudents = filteredStudents.filter(student =>
     student.status?.personal === "none"
@@ -105,8 +135,8 @@ const AllStudents = () => {
     student.status?.personal === "approved"
   );
 
-  // Compute achievements
-  const achievement = students.reduce((acc, s) => {
+  // Compute achievements based on filtered students
+  const achievement = filteredStudents.reduce((acc, s) => {
     (s.positions || []).forEach(pos => {
       const p = String(pos?.position || '').toLowerCase();
       if (p.includes('particip')) acc.participated += 1;
@@ -143,14 +173,57 @@ const AllStudents = () => {
         </Button>
       </motion.div>
 
-      {/* Search & Stats */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Session Selector */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <Card>
-          <CardContent className="p-6 flex items-center gap-3">
-            <Users className="w-8 h-8 text-primary" />
-            <div>
-              <p className="text-2xl font-bold text-foreground">{students.length}</p>
-              <p className="text-sm text-muted-foreground">Total Students</p>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Calendar className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">Filter by Session</h3>
+            </div>
+            <Select
+              value={selectedSession}
+              onChange={(e) => setSelectedSession(e.target.value)}
+              className="w-full"
+            >
+              <option value="">All Sessions</option>
+              {sessions.map((session) => (
+                <option key={session._id} value={session._id}>
+                  {session.session} {session.isActive ? "(Active)" : ""}
+                </option>
+              ))}
+            </Select>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Search & Stats */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Users className="w-8 h-8 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Student Status</p>
+                <p className="text-base font-semibold text-foreground">Pending • Approved • Total</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg text-center">
+                <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mx-auto mb-1" />
+                <div className="text-xl font-bold text-yellow-800 dark:text-yellow-300">{pendingStudents.length}</div>
+                <div className="text-xs text-yellow-600 dark:text-yellow-400">Pending</div>
+              </div>
+              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg text-center">
+                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto mb-1" />
+                <div className="text-xl font-bold text-green-800 dark:text-green-300">{approvedStudents.length}</div>
+                <div className="text-xs text-green-600 dark:text-green-400">Approved</div>
+              </div>
+              <div className="p-3 bg-primary/10 rounded-lg text-center">
+                <Users className="w-4 h-4 text-primary mx-auto mb-1" />
+                <div className="text-xl font-bold text-primary">{filteredStudents.length}</div>
+                <div className="text-xs text-muted-foreground">Total</div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -185,6 +258,7 @@ const AllStudents = () => {
                 <p className="text-sm text-muted-foreground">Student Achievements</p>
                 <p className="text-base font-semibold text-foreground">2nd • 3rd</p>
               </div>
+
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-muted rounded-lg text-center">
@@ -201,10 +275,10 @@ const AllStudents = () => {
       </motion.div>
 
       {/* Search Bar */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card>
           <CardContent className="p-6 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Search className="absolute left-10 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <input
               type="text"
               placeholder="Search students by name, URN, or branch..."
@@ -228,3 +302,4 @@ const AllStudents = () => {
 };
 
 export default AllStudents;
+

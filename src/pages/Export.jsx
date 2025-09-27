@@ -486,7 +486,7 @@ const exportToPDF = async (students, category, sport, year, manager, pdfCollege)
       ["1","2","3","4","5","6","Matric 7(a)","+2 7(b)","8","Name 9(a)","Year 9(b)","Graduate 10(a)","PG 10(b)","11","12","13","14"]
     ];
 
-    // 🔹 Prepare fullBody
+    // 🔹 Prepare body
     const fullBody = await Promise.all(batchStudents.map(async (s, index) => {
       const photo = await loadImage(s.passportPhotoUrl);
       const signature = await loadImage(s.signatureUrl);
@@ -512,72 +512,124 @@ const exportToPDF = async (students, category, sport, year, manager, pdfCollege)
       ];
     }));
 
-    // 🔹 Split into pages of 5 rows each
-    const rowsPerPage = 5;
-    for (let i = 0; i < fullBody.length; i += rowsPerPage) {
-      const pageBody = fullBody.slice(i, i + rowsPerPage);
-      if (i > 0) doc.addPage(); // add new page after first
+    // 🔹 Dynamic rows per page
+    const getRowsPerPage = (pageIndex) => {
+      if (pageIndex === 0) return 6;   // first page = 6 rows
+      return 9;                       // all other pages = 10 rows (you can change this)
+    };
+
+    let start = 0;
+    let pageIndex = 0;
+
+    while (start < fullBody.length) {
+      const rowsThisPage = getRowsPerPage(pageIndex);
+      const pageBody = fullBody.slice(start, start + rowsThisPage);
+
+      if (pageIndex > 0) doc.addPage();
 
       autoTable(doc, {
         head,
         body: pageBody,
-startY: i === 0 ? 120 : 10,// table starts below header
+        startY: pageIndex === 0 ? 120 : 10,
         theme: "grid",
-        styles: { font: "times", fontSize: 9, halign: "center", valign: "middle", lineColor: [0,0,0], lineWidth: 0.5 },
-        headStyles: { font: "times", fontSize: 8, textColor: 0, fillColor: [255,255,255] },
-        tableWidth: "auto",
-        columnStyles: { 11: { cellWidth: 50 } },
-         showHead: i === 0 ? 'everyPage' : 'never',
+        styles: {
+          font: "times",
+          fontSize: 9,
+          halign: "center",
+          valign: "middle",
+          lineColor: [0, 0, 0],
+          lineWidth: 0.5
+        },
+        headStyles: {
+          font: "times",
+          fontSize: 8,
+          textColor: 0,
+          fillColor: [255, 255, 255],
+          minCellHeight: 20
+        },
+        columnStyles: {
+          0: { cellWidth: 20 },   // Sr. No
+          1: { cellWidth: 60 },   // Name
+          2: { cellWidth: 60 },   // Father's Name
+          3: { cellWidth: 60 },   // DOB
+          4: { cellWidth: 50 },   // Reg No
+          5: { cellWidth: 80 },   // Branch/Year
+          6: { cellWidth: 30 },   // Matric
+          7: { cellWidth: 30 },   // +2
+          8: { cellWidth: 30 },   // First Admission
+          9: { cellWidth: 50 },   // Last Exam Name
+          10:{ cellWidth: 30 },   // Last Exam Year
+          11:{ cellWidth: 30 },   // Graduate
+          12:{ cellWidth: 30 },   // PG
+          13:{ cellWidth: 30 },   // Varsity Years
+          14:{ cellWidth: 50 },   // Signature
+          15:{ cellWidth: 80 },   // Address
+          16:{ cellWidth: 60 },   // Photo
+        },
+        showHead: pageIndex === 0 ? 'everyPage' : 'never',
         didDrawCell: (data) => {
           if (data.section === "body") {
             // Signature
             if (data.column.index === 14) {
-              const sig = batchStudents[data.row.index + i]?.signatureUrl;
+              const sig = batchStudents[data.row.index + start]?.signatureUrl;
               if (sig) {
-                doc.addImage(sig, "JPEG", data.cell.x + (data.cell.width - 40)/2, data.cell.y + (data.cell.height - 20)/2, 40, 20);
+                doc.addImage(sig, "JPEG",
+                  data.cell.x + (data.cell.width - 40) / 2,
+                  data.cell.y + (data.cell.height - 20) / 2,
+                  40, 20
+                );
               }
             }
             // Passport
             if (data.column.index === 16) {
-              const photo = batchStudents[data.row.index + i]?.passportPhotoUrl;
+              const photo = batchStudents[data.row.index + start]?.passportPhotoUrl;
               if (photo) {
-                doc.addImage(photo, "JPEG", data.cell.x + (data.cell.width - 35)/2, data.cell.y + (data.cell.height - 45)/2, 35, 45);
+                doc.addImage(photo, "JPEG",
+                  data.cell.x + (data.cell.width - 35) / 2,
+                  data.cell.y + (data.cell.height - 45) / 2,
+                  35, 45
+                );
               }
             }
+          }
+        },
+        didDrawPage: (data) => {
+          // Footer only on last page
+          if (start + rowsThisPage >= fullBody.length) {
+            let finalY = data.cursor.y + 20;
+            const colWidth = pageWidth / 3 - 40;
+            const col1X = 40;
+            const col2X = col1X + colWidth + 20;
+            const col3X = col2X + colWidth + 20;
+            const certs = [
+              "Certified that particulars given above have been verified and checked.",
+              "Certified that the players are not employed anywhere on full time basis.",
+              "Certified that the eligibility of the students listed herein has been verified and they are eligible.",
+            ];
+            certs.forEach((c, j) => {
+              const x = [col1X, col2X, col3X][j];
+              doc.text(doc.splitTextToSize(c, colWidth), x, finalY);
+            });
+            const signY = finalY + 50;
+            doc.text("Date: ___________", col1X, signY);
+            doc.text("Signature of DPE/Lecturer Physical Edu.", col2X, signY);
+            doc.setFont("times", "bold");
+            doc.text("PRINCIPAL", col3X, signY);
+            doc.setFont("times", "normal");
+            doc.text("(Seal of College)", col3X, signY + 15);
           }
         }
       });
 
-      // 🔹 Footer only on last page
-      if (i + rowsPerPage >= fullBody.length) {
-        const certY = pageHeight - 110;
-        const colWidth = pageWidth / 3 - 40;
-        const col1X = 40;
-        const col2X = col1X + colWidth + 20;
-        const col3X = col2X + colWidth + 20;
-        const certs = [
-          "Certified that particulars given above have been verified and checked.",
-          "Certified that the players are not employed anywhere on full time basis.",
-          "Certified that the eligibility of the students listed herein has been verified and they are eligible.",
-        ];
-        certs.forEach((c, j) => {
-          const x = [col1X, col2X, col3X][j];
-          doc.text(doc.splitTextToSize(c, colWidth), x, certY);
-        });
-
-        const signY = pageHeight - 50;
-        doc.text("Date: ___________", col1X, signY);
-        doc.text("Signature of DPE/Lecturer Physical Edu.", col2X, signY);
-        doc.setFont("times", "bold");
-        doc.text("PRINCIPAL", col3X, signY);
-        doc.setFont("times", "normal");
-        doc.text("(Seal of College)", col3X, signY + 15);
-      }
+      start += rowsThisPage;
+      pageIndex++;
     }
 
     doc.save(`Eligibility_Form_Part${batchIndex + 1}.pdf`);
   }
 };
+
+
 
 // 🔹 Main Component
 const StudentExport = () => {
